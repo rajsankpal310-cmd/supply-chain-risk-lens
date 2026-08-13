@@ -1,0 +1,49 @@
+import type { RiskLevel } from "@/types";
+
+export function formatINR(value: number, compact = true): string {
+  if (!Number.isFinite(value)) return "—";
+  if (!compact) return `₹${value.toLocaleString("en-IN")}`;
+  const abs = Math.abs(value);
+  if (abs >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
+  if (abs >= 100000) return `₹${(value / 100000).toFixed(2)} L`;
+  if (abs >= 1000) return `₹${(value / 1000).toFixed(1)}K`;
+  return `₹${value.toFixed(0)}`;
+}
+
+export function formatDate(iso?: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export function formatPercent(value: number, digits = 0): string {
+  return `${value.toFixed(digits)}%`;
+}
+
+export function riskLevelFromScore(score: number): RiskLevel {
+  if (score >= 80) return "CRITICAL";
+  if (score >= 62) return "HIGH";
+  if (score >= 40) return "MEDIUM";
+  return "LOW";
+}
+
+export const RISK_ORDER: Record<RiskLevel, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };
+
+export function downloadFile(filename: string, content: string, mime = "text/plain") {
+  if (typeof document === "undefined") return;
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function toCsv(rows: Record<string, unknown>[]): string {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]!);
+  const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+}
