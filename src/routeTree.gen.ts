@@ -10,33 +10,339 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAlertsRouteImport } from './routes/app.alerts'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppDeadlocksRouteImport } from './routes/app.deadlocks'
+import { Route as AppNetworkRouteImport } from './routes/app.network'
+import { Route as AppOptimizationRouteImport } from './routes/app.optimization'
+import { Route as AppPredictionsRouteImport } from './routes/app.predictions'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppRecommendationsRouteImport } from './routes/app.recommendations'
+import { Route as AppRelationshipsRouteImport } from './routes/app.relationships'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppRiskRouteImport } from './routes/app.risk'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppSimulatorRouteImport } from './routes/app.simulator'
+import { Route as AppUploadRouteImport } from './routes/app.upload'
+import { Route as AppFirmsIndexRouteImport } from './routes/app.firms.index'
+import { Route as AppFirmsIdRouteImport } from './routes/app.firms.$id'
+import { Route as AppSimulationsIndexRouteImport } from './routes/app.simulations.index'
+import { Route as AppSimulationsIdRouteImport } from './routes/app.simulations.$id'
+import { Route as AppTransactionsIndexRouteImport } from './routes/app.transactions.index'
+import { Route as AppTransactionsIdRouteImport } from './routes/app.transactions.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlertsRoute = AppAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDeadlocksRoute = AppDeadlocksRouteImport.update({
+  id: '/deadlocks',
+  path: '/deadlocks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNetworkRoute = AppNetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOptimizationRoute = AppOptimizationRouteImport.update({
+  id: '/optimization',
+  path: '/optimization',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPredictionsRoute = AppPredictionsRouteImport.update({
+  id: '/predictions',
+  path: '/predictions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecommendationsRoute = AppRecommendationsRouteImport.update({
+  id: '/recommendations',
+  path: '/recommendations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRelationshipsRoute = AppRelationshipsRouteImport.update({
+  id: '/relationships',
+  path: '/relationships',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRiskRoute = AppRiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSimulatorRoute = AppSimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUploadRoute = AppUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFirmsIndexRoute = AppFirmsIndexRouteImport.update({
+  id: '/firms/',
+  path: '/firms/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFirmsIdRoute = AppFirmsIdRouteImport.update({
+  id: '/firms/$id',
+  path: '/firms/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSimulationsIndexRoute = AppSimulationsIndexRouteImport.update({
+  id: '/simulations/',
+  path: '/simulations/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSimulationsIdRoute = AppSimulationsIdRouteImport.update({
+  id: '/simulations/$id',
+  path: '/simulations/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTransactionsIndexRoute = AppTransactionsIndexRouteImport.update({
+  id: '/transactions/',
+  path: '/transactions/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTransactionsIdRoute = AppTransactionsIdRouteImport.update({
+  id: '/transactions/$id',
+  path: '/transactions/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/network': typeof AppNetworkRoute
+  '/app/optimization': typeof AppOptimizationRoute
+  '/app/predictions': typeof AppPredictionsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/recommendations': typeof AppRecommendationsRoute
+  '/app/relationships': typeof AppRelationshipsRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/risk': typeof AppRiskRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/simulator': typeof AppSimulatorRoute
+  '/app/upload': typeof AppUploadRoute
+  '/app/': typeof AppIndexRoute
+  '/app/firms/$id': typeof AppFirmsIdRoute
+  '/app/simulations/$id': typeof AppSimulationsIdRoute
+  '/app/transactions/$id': typeof AppTransactionsIdRoute
+  '/app/firms/': typeof AppFirmsIndexRoute
+  '/app/simulations/': typeof AppSimulationsIndexRoute
+  '/app/transactions/': typeof AppTransactionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/network': typeof AppNetworkRoute
+  '/app/optimization': typeof AppOptimizationRoute
+  '/app/predictions': typeof AppPredictionsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/recommendations': typeof AppRecommendationsRoute
+  '/app/relationships': typeof AppRelationshipsRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/risk': typeof AppRiskRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/simulator': typeof AppSimulatorRoute
+  '/app/upload': typeof AppUploadRoute
+  '/app': typeof AppIndexRoute
+  '/app/firms/$id': typeof AppFirmsIdRoute
+  '/app/simulations/$id': typeof AppSimulationsIdRoute
+  '/app/transactions/$id': typeof AppTransactionsIdRoute
+  '/app/firms': typeof AppFirmsIndexRoute
+  '/app/simulations': typeof AppSimulationsIndexRoute
+  '/app/transactions': typeof AppTransactionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/app/alerts': typeof AppAlertsRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/network': typeof AppNetworkRoute
+  '/app/optimization': typeof AppOptimizationRoute
+  '/app/predictions': typeof AppPredictionsRoute
+  '/app/profile': typeof AppProfileRoute
+  '/app/recommendations': typeof AppRecommendationsRoute
+  '/app/relationships': typeof AppRelationshipsRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/risk': typeof AppRiskRoute
+  '/app/settings': typeof AppSettingsRoute
+  '/app/simulator': typeof AppSimulatorRoute
+  '/app/upload': typeof AppUploadRoute
+  '/app/': typeof AppIndexRoute
+  '/app/firms/$id': typeof AppFirmsIdRoute
+  '/app/simulations/$id': typeof AppSimulationsIdRoute
+  '/app/transactions/$id': typeof AppTransactionsIdRoute
+  '/app/firms/': typeof AppFirmsIndexRoute
+  '/app/simulations/': typeof AppSimulationsIndexRoute
+  '/app/transactions/': typeof AppTransactionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/app/alerts'
+    | '/app/dashboard'
+    | '/app/deadlocks'
+    | '/app/network'
+    | '/app/optimization'
+    | '/app/predictions'
+    | '/app/profile'
+    | '/app/recommendations'
+    | '/app/relationships'
+    | '/app/reports'
+    | '/app/risk'
+    | '/app/settings'
+    | '/app/simulator'
+    | '/app/upload'
+    | '/app/'
+    | '/app/firms/$id'
+    | '/app/simulations/$id'
+    | '/app/transactions/$id'
+    | '/app/firms/'
+    | '/app/simulations/'
+    | '/app/transactions/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/app/alerts'
+    | '/app/dashboard'
+    | '/app/deadlocks'
+    | '/app/network'
+    | '/app/optimization'
+    | '/app/predictions'
+    | '/app/profile'
+    | '/app/recommendations'
+    | '/app/relationships'
+    | '/app/reports'
+    | '/app/risk'
+    | '/app/settings'
+    | '/app/simulator'
+    | '/app/upload'
+    | '/app'
+    | '/app/firms/$id'
+    | '/app/simulations/$id'
+    | '/app/transactions/$id'
+    | '/app/firms'
+    | '/app/simulations'
+    | '/app/transactions'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/app/alerts'
+    | '/app/dashboard'
+    | '/app/deadlocks'
+    | '/app/network'
+    | '/app/optimization'
+    | '/app/predictions'
+    | '/app/profile'
+    | '/app/recommendations'
+    | '/app/relationships'
+    | '/app/reports'
+    | '/app/risk'
+    | '/app/settings'
+    | '/app/simulator'
+    | '/app/upload'
+    | '/app/'
+    | '/app/firms/$id'
+    | '/app/simulations/$id'
+    | '/app/transactions/$id'
+    | '/app/firms/'
+    | '/app/simulations/'
+    | '/app/transactions/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +354,240 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/alerts': {
+      id: '/app/alerts'
+      path: '/alerts'
+      fullPath: '/app/alerts'
+      preLoaderRoute: typeof AppAlertsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/deadlocks': {
+      id: '/app/deadlocks'
+      path: '/deadlocks'
+      fullPath: '/app/deadlocks'
+      preLoaderRoute: typeof AppDeadlocksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/network': {
+      id: '/app/network'
+      path: '/network'
+      fullPath: '/app/network'
+      preLoaderRoute: typeof AppNetworkRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/optimization': {
+      id: '/app/optimization'
+      path: '/optimization'
+      fullPath: '/app/optimization'
+      preLoaderRoute: typeof AppOptimizationRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/predictions': {
+      id: '/app/predictions'
+      path: '/predictions'
+      fullPath: '/app/predictions'
+      preLoaderRoute: typeof AppPredictionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/recommendations': {
+      id: '/app/recommendations'
+      path: '/recommendations'
+      fullPath: '/app/recommendations'
+      preLoaderRoute: typeof AppRecommendationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/relationships': {
+      id: '/app/relationships'
+      path: '/relationships'
+      fullPath: '/app/relationships'
+      preLoaderRoute: typeof AppRelationshipsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/risk': {
+      id: '/app/risk'
+      path: '/risk'
+      fullPath: '/app/risk'
+      preLoaderRoute: typeof AppRiskRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/simulator': {
+      id: '/app/simulator'
+      path: '/simulator'
+      fullPath: '/app/simulator'
+      preLoaderRoute: typeof AppSimulatorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/upload': {
+      id: '/app/upload'
+      path: '/upload'
+      fullPath: '/app/upload'
+      preLoaderRoute: typeof AppUploadRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/firms/': {
+      id: '/app/firms/'
+      path: '/firms'
+      fullPath: '/app/firms/'
+      preLoaderRoute: typeof AppFirmsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/firms/$id': {
+      id: '/app/firms/$id'
+      path: '/firms/$id'
+      fullPath: '/app/firms/$id'
+      preLoaderRoute: typeof AppFirmsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/simulations/': {
+      id: '/app/simulations/'
+      path: '/simulations'
+      fullPath: '/app/simulations/'
+      preLoaderRoute: typeof AppSimulationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/simulations/$id': {
+      id: '/app/simulations/$id'
+      path: '/simulations/$id'
+      fullPath: '/app/simulations/$id'
+      preLoaderRoute: typeof AppSimulationsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/transactions/': {
+      id: '/app/transactions/'
+      path: '/transactions'
+      fullPath: '/app/transactions/'
+      preLoaderRoute: typeof AppTransactionsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/transactions/$id': {
+      id: '/app/transactions/$id'
+      path: '/transactions/$id'
+      fullPath: '/app/transactions/$id'
+      preLoaderRoute: typeof AppTransactionsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAlertsRoute: typeof AppAlertsRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDeadlocksRoute: typeof AppDeadlocksRoute
+  AppNetworkRoute: typeof AppNetworkRoute
+  AppOptimizationRoute: typeof AppOptimizationRoute
+  AppPredictionsRoute: typeof AppPredictionsRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppRecommendationsRoute: typeof AppRecommendationsRoute
+  AppRelationshipsRoute: typeof AppRelationshipsRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppRiskRoute: typeof AppRiskRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppSimulatorRoute: typeof AppSimulatorRoute
+  AppUploadRoute: typeof AppUploadRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppFirmsIdRoute: typeof AppFirmsIdRoute
+  AppSimulationsIdRoute: typeof AppSimulationsIdRoute
+  AppTransactionsIdRoute: typeof AppTransactionsIdRoute
+  AppFirmsIndexRoute: typeof AppFirmsIndexRoute
+  AppSimulationsIndexRoute: typeof AppSimulationsIndexRoute
+  AppTransactionsIndexRoute: typeof AppTransactionsIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAlertsRoute: AppAlertsRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppDeadlocksRoute: AppDeadlocksRoute,
+  AppNetworkRoute: AppNetworkRoute,
+  AppOptimizationRoute: AppOptimizationRoute,
+  AppPredictionsRoute: AppPredictionsRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppRecommendationsRoute: AppRecommendationsRoute,
+  AppRelationshipsRoute: AppRelationshipsRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppRiskRoute: AppRiskRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppSimulatorRoute: AppSimulatorRoute,
+  AppUploadRoute: AppUploadRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppFirmsIdRoute: AppFirmsIdRoute,
+  AppSimulationsIdRoute: AppSimulationsIdRoute,
+  AppTransactionsIdRoute: AppTransactionsIdRoute,
+  AppFirmsIndexRoute: AppFirmsIndexRoute,
+  AppSimulationsIndexRoute: AppSimulationsIndexRoute,
+  AppTransactionsIndexRoute: AppTransactionsIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
