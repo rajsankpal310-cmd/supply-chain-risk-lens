@@ -96,10 +96,63 @@ export function LoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </Button>
 
-        <p className="text-muted-foreground border-border bg-muted/40 flex items-start gap-2 rounded-md border px-3 py-2 text-xs">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Demo account pre-filled: {DEMO_CREDENTIALS.email} / {DEMO_CREDENTIALS.password}. All data shown is a demo dataset.
-        </p>
+        <div className="rounded-lg border border-border/70 bg-card/60 p-3 text-xs space-y-2">
+          <div className="flex items-center gap-1.5 font-medium text-foreground">
+            <ShieldCheck className="size-4 text-primary" />
+            <span>Authoritative Role Accounts</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Select an assigned role to sign in with verified credentials:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("demo@nexuscfr.in");
+                setPassword("demo1234");
+                setErrors({});
+                setFormError(null);
+              }}
+              className="rounded-lg border border-border/80 bg-background/70 p-2.5 text-left hover:border-primary/60 hover:bg-accent/40 transition-colors"
+            >
+              <p className="font-semibold text-foreground text-xs">SME Admin</p>
+              <p className="text-[10px] text-primary font-medium mt-0.5">Full Operational Control</p>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                Manage data ingestion, invoice triage, and payment settlements.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("analyst@nexus-cfr.demo");
+                setPassword("demo1234");
+                setErrors({});
+                setFormError(null);
+              }}
+              className="rounded-lg border border-border/80 bg-background/70 p-2.5 text-left hover:border-primary/60 hover:bg-accent/40 transition-colors"
+            >
+              <p className="font-semibold text-foreground text-xs">Credit Analyst</p>
+              <p className="text-[10px] text-primary font-medium mt-0.5">Risk & Simulations</p>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                Investigate financial contagion, shock scenarios, and optimizations.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("viewer@nexus-cfr.demo");
+                setPassword("demo1234");
+                setErrors({});
+                setFormError(null);
+              }}
+              className="rounded-lg border border-border/80 bg-background/70 p-2.5 text-left hover:border-primary/60 hover:bg-accent/40 transition-colors"
+            >
+              <p className="font-semibold text-foreground text-xs">Executive Viewer</p>
+              <p className="text-[10px] text-primary font-medium mt-0.5">Read-Only Monitoring</p>
+              <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+                Monitor portfolio resilience, risk bands, and audit reports.
+              </p>
+            </button>
+          </div>
+        </div>
 
         <p className="text-muted-foreground text-center text-sm">
           New to NEXUS-CFR?{" "}

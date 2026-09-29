@@ -1,0 +1,46 @@
+import { Router } from "express";
+import alertRoutes from "./alert.routes";
+import authRoutes from "./auth.routes";
+import dashboardRoutes from "./dashboard.routes";
+import deadlockRoutes from "./deadlock.routes";
+import firmRoutes from "./firm.routes";
+import networkRoutes from "./network.routes";
+import optimizationRoutes from "./optimization.routes";
+import predictionRoutes from "./prediction.routes";
+import recommendationRoutes from "./recommendation.routes";
+import relationshipRoutes from "./relationship.routes";
+import reportRoutes from "./report.routes";
+import riskRoutes from "./risk.routes";
+import scenarioRoutes from "./scenario.routes";
+import simulationRoutes from "./simulation.routes";
+import transactionRoutes from "./transaction.routes";
+import uploadRoutes from "./upload.routes";
+import referenceRoutes from "./reference.routes";
+import governanceRoutes from "./governance.routes";
+import connectorRoutes from "./connector.routes";
+import mlRoutes from "./ml.routes";
+
+const apiRouter = Router();
+
+apiRouter.use("/auth", authRoutes);
+apiRouter.use("/dashboard", dashboardRoutes);
+apiRouter.use("/transactions", transactionRoutes);
+apiRouter.use("/firms", firmRoutes);
+apiRouter.use("/relationships", relationshipRoutes);
+apiRouter.use("/risk", riskRoutes);
+apiRouter.use("/predictions", predictionRoutes);
+apiRouter.use("/network", networkRoutes);
+apiRouter.use("/scenarios", scenarioRoutes);
+apiRouter.use("/simulations", simulationRoutes);
+apiRouter.use("/deadlocks", deadlockRoutes);
+apiRouter.use("/recommendations", recommendationRoutes);
+apiRouter.use("/optimization", optimizationRoutes);
+apiRouter.use("/reports", reportRoutes);
+apiRouter.use("/alerts", alertRoutes);
+apiRouter.use("/upload", uploadRoutes);
+apiRouter.use("/reference", referenceRoutes);
+apiRouter.use("/governance", governanceRoutes);
+apiRouter.use("/connectors", connectorRoutes);
+apiRouter.use("/ml", mlRoutes);
+
+export default apiRouter;

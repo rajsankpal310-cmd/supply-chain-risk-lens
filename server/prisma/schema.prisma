@@ -1,0 +1,374 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  firms            Firm[]
+  transactions     Transaction[]
+  relationships    Relationship[]
+  predictions      Prediction[]
+  scenarios        Scenario[]
+  simulationRuns   SimulationRun[]
+  deadlocks        Deadlock[]
+  recommendations  Recommendation[]
+  alerts           Alert[]
+  reports          Report[]
+  importBatches    ImportBatch[]
+  optimizationRuns OptimizationRun[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  fullName       String
+  email          String       @unique
+  passwordHash   String
+  companyName    String
+  industry       String
+  companySize    String
+  role           String       @default("SME_ADMIN")
+  avatarInitials String       @default("US")
+  firmId         String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model Firm {
+  id                  String       @id @default(uuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  name                String
+  industry            String
+  role                String       @default("SME")
+  city                String
+  transactionCount    Int          @default(0)
+  buyersCount         Int          @default(0)
+  suppliersCount      Int          @default(0)
+  avgPaymentDelayDays Float        @default(0)
+  outstandingAmount   Float        @default(0)
+  annualTurnover      Float        @default(0)
+  cashBufferDays      Int          @default(30)
+  riskScore           Float        @default(0)
+  riskLevel           String       @default("LOW")
+  financialStress     Float        @default(0)
+  status              String       @default("HEALTHY")
+  isDemo              Boolean      @default(true)
+  sourceType          String       @default("DEMO_ONLY")
+  dataStatus          String       @default("DEMO")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  smeTransactions     Transaction[]  @relation("SmeFirm")
+  buyerTransactions   Transaction[]  @relation("BuyerFirm")
+  supplierTransactions Transaction[] @relation("SupplierFirm")
+  sourceRelationships Relationship[] @relation("SourceFirm")
+  targetRelationships Relationship[] @relation("TargetFirm")
+  predictions         Prediction[]
+  recommendations     Recommendation[]
+  alerts              Alert[]
+
+  @@index([organizationId])
+}
+
+model ImportBatch {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  sourceType     String        @default("DEMO_ONLY")
+  sourceName     String
+  sourceOrg      String?
+  sourceUrl      String?
+  sourceDate     DateTime?
+  datasetVersion String?
+  license        String?
+  dataGranularity String?      @default("TRANSACTION_LEVEL")
+  status         String        @default("IMPORTED")
+  importedAt     DateTime      @default(now())
+  importedBy     String?
+  recordCount    Int           @default(0)
+  acceptedCount  Int           @default(0)
+  rejectedCount  Int           @default(0)
+  duplicateCount Int           @default(0)
+  dataStatus     String        @default("VERIFIED")
+  qualityReport  String?
+  rawSample      String?
+  transactions   Transaction[]
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([sourceType])
+  @@index([status])
+}
+
+model Transaction {
+  id                String       @id @default(uuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  transactionId     String?
+  smeId             String
+  buyerId           String
+  supplierId        String?
+  invoiceAmount     Float
+  outstandingAmount Float
+  invoiceDate       DateTime
+  dueDate           DateTime
+  paymentDate       DateTime?
+  creditPeriodDays  Int          @default(30)
+  paymentDelayDays  Int?
+  paymentStatus     String       @default("PENDING")
+  riskLevel         String       @default("LOW")
+  sourceType        String       @default("DEMO_ONLY")
+  sourceName        String?
+  sourceUrl         String?
+  dataStatus        String       @default("DEMO")
+  batchId           String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  sme      Firm         @relation("SmeFirm", fields: [smeId], references: [id])
+  buyer    Firm         @relation("BuyerFirm", fields: [buyerId], references: [id])
+  supplier Firm?        @relation("SupplierFirm", fields: [supplierId], references: [id])
+  batch    ImportBatch? @relation(fields: [batchId], references: [id])
+
+  @@index([organizationId])
+  @@index([smeId])
+  @@index([buyerId])
+  @@index([supplierId])
+  @@index([invoiceDate])
+  @@index([dueDate])
+  @@index([paymentStatus])
+  @@index([sourceType])
+  @@index([batchId])
+}
+
+model Relationship {
+  id                  String       @id @default(uuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  sourceFirmId        String
+  targetFirmId        String
+  type                String       @default("SUPPLIES_TO")
+  avgTransactionValue Float        @default(0)
+  creditPeriodDays    Int          @default(30)
+  dependencyLevel     Float        @default(0)
+  criticality         String       @default("LOW")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  sourceFirm Firm @relation("SourceFirm", fields: [sourceFirmId], references: [id])
+  targetFirm Firm @relation("TargetFirm", fields: [targetFirmId], references: [id])
+
+  @@index([organizationId])
+  @@index([sourceFirmId])
+  @@index([targetFirmId])
+}
+
+model Prediction {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  firmId             String
+  type               String       @default("PAYMENT_DELAY")
+  probability        Float        @default(0)
+  expectedDelayDays  Int?
+  riskLevel          String       @default("LOW")
+  predictedDate      DateTime?
+  confidence         Float        @default(80)
+  factors            String       @default("[]")
+  horizon            String       @default("[]")
+  modelVersion       String       @default("phase2-demo")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  firm Firm @relation(fields: [firmId], references: [id])
+
+  @@index([organizationId])
+  @@index([firmId])
+}
+
+model Scenario {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  description    String?
+  type           String       @default("BUYER_PAYMENT_DELAY")
+  affectedFirmId String
+  severity       String       @default("HIGH")
+  delayDays      Int          @default(60)
+  amount         Float        @default(5000000)
+  durationDays   Int          @default(90)
+  recoveryRate   Float        @default(45)
+  status         String       @default("ACTIVE")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  simulations SimulationRun[]
+
+  @@index([organizationId])
+}
+
+model SimulationRun {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  scenarioId     String
+  status         String       @default("COMPLETED")
+  rootFirmId     String
+  cascadeRisk    Float        @default(0)
+  expectedLoss   Float        @default(0)
+  maximumImpact  Float        @default(0)
+  startedAt      DateTime     @default(now())
+  completedAt    DateTime?
+  result         String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  scenario          Scenario           @relation(fields: [scenarioId], references: [id])
+  simulationResults SimulationResult[]
+
+  @@index([organizationId])
+  @@index([scenarioId])
+  @@index([rootFirmId])
+}
+
+model SimulationResult {
+  id              String   @id @default(uuid())
+  simulationRunId String
+  firmId          String
+  hop             Int      @default(0)
+  initialRisk     Float    @default(0)
+  finalRisk       Float    @default(0)
+  impactAmount    Float    @default(0)
+  state           String   @default("STRESSED")
+  createdAt       DateTime @default(now())
+
+  simulationRun SimulationRun @relation(fields: [simulationRunId], references: [id])
+
+  @@index([simulationRunId])
+  @@index([firmId])
+}
+
+model Deadlock {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  rootFirmId      String
+  rootFirmName    String
+  severity        String       @default("HIGH")
+  deadlockRisk    Float        @default(0)
+  chain           String       @default("[]")
+  totalExposure   Float        @default(0)
+  estimatedImpact Float        @default(0)
+  status          String       @default("OPEN")
+  resolved        Boolean      @default(false)
+  detectedAt      DateTime     @default(now())
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model Recommendation {
+  id                   String       @id @default(uuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  firmId               String
+  firmName             String
+  kind                 String       @default("INVOICE_FINANCING")
+  title                String
+  description          String?
+  riskAddressed        String
+  reason               String
+  expectedImpact       String
+  estimatedRequirement Float        @default(0)
+  priority             String       @default("HIGH")
+  confidence           Float        @default(80)
+  status               String       @default("OPEN")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  firm Firm @relation(fields: [firmId], references: [id])
+
+  @@index([organizationId])
+  @@index([firmId])
+  @@index([status])
+}
+
+model OptimizationRun {
+  id                 String       @id @default(uuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  budget             Float
+  cascadeRiskBefore  Float        @default(0)
+  cascadeRiskAfter   Float        @default(0)
+  expectedLossBefore Float        @default(0)
+  expectedLossAfter  Float        @default(0)
+  allocations        String       @default("[]")
+  status             String       @default("COMPLETED")
+  createdAt          DateTime     @default(now())
+  completedAt        DateTime     @default(now())
+
+  @@index([organizationId])
+}
+
+model Alert {
+  id                String       @id @default(uuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  firmId            String
+  firmName          String
+  category          String       @default("PAYMENT_DELAY")
+  severity          String       @default("HIGH")
+  date              DateTime     @default(now())
+  title             String
+  reason            String
+  impact            String
+  recommendedAction String
+  read              Boolean      @default(false)
+  archived          Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  firm Firm @relation(fields: [firmId], references: [id])
+
+  @@index([organizationId])
+  @@index([firmId])
+  @@index([severity])
+  @@index([read])
+}
+
+model Report {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  key             String
+  name            String
+  description     String
+  lastGeneratedAt DateTime?
+  status          String       @default("NOT_GENERATED")
+  generatedBy     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}

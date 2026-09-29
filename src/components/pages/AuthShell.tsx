@@ -10,13 +10,13 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           <span className="font-semibold tracking-tight">NEXUS-CFR</span>
         </Link>
         <div>
-          <h2 className="max-w-md text-3xl font-semibold tracking-tight">Risk intelligence for the firms you depend on.</h2>
-          <p className="text-muted-foreground mt-4 max-w-md text-sm">
-            Predict payment delays, map supply-chain exposure, simulate shocks and act on prioritised recommendations — all from your own
-            transaction data.
+          <span className="text-primary font-mono text-xs tracking-wider uppercase">NEXUS-CFR Platform</span>
+          <h2 className="mt-2 max-w-md text-3xl font-semibold tracking-tight">Data-Driven SME Financial Risk Prediction & Supply Chain Resilience</h2>
+          <p className="text-muted-foreground mt-4 max-w-md text-sm leading-relaxed">
+            Predict payment delays, map supply-chain network exposure, simulate cascade shocks, and execute prioritised financial interventions from real transaction ledgers.
           </p>
         </div>
-        <p className="text-muted-foreground text-xs">Demo dataset only — sample data, not real financial information.</p>
+        <p className="text-muted-foreground text-xs">Supports primary transactions and verified public research datasets with full provenance tracking.</p>
       </div>
 
       <div className="flex items-center justify-center p-6">

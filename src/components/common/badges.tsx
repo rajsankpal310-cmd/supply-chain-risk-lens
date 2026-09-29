@@ -63,6 +63,166 @@ export function DemoDataBadge({ className }: { className?: string }) {
   );
 }
 
+export function ProvenanceBadge({
+  sourceType,
+  dataStatus,
+  className,
+}: {
+  sourceType?: string | undefined;
+  dataStatus?: string | undefined;
+  className?: string | undefined;
+}) {
+  const normType = (sourceType || "DEMO_ONLY").toUpperCase();
+  const normStatus = (dataStatus || "").toUpperCase();
+
+  // 1. Simulated Benchmark (Statistically modeled/calibrated B2B ledger)
+  if (
+    normStatus === "SIMULATED" ||
+    normStatus === "PUBLIC_SIMULATED_DATA" ||
+    normType === "SIMULATED"
+  ) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400",
+              className
+            )}
+          >
+            <Clock className="size-3 shrink-0" />
+            Simulated Benchmark
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Statistically simulated B2B transaction ledger calibrated from credit distributions. Not real corporate records.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 2. Verified Primary Data (Observed operational ledger records)
+  if (normStatus === "REAL_OBSERVED" || normType === "PRIMARY_TRANSACTION") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400",
+              className
+            )}
+          >
+            <ShieldCheck className="size-3 shrink-0" />
+            Verified Primary Data
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Ingested from verified primary business/ledger records.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 3. Administrative Aggregate / External Reference / Survey
+  if (
+    normStatus === "ADMINISTRATIVE_AGGREGATE" ||
+    normStatus === "SURVEY_MICRODATA" ||
+    normType === "EXTERNAL_REFERENCE" ||
+    normType === "ADMINISTRATIVE" ||
+    normType === "SURVEY"
+  ) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400",
+              className
+            )}
+          >
+            <CircleAlert className="size-3 shrink-0" />
+            External Reference
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Official administrative aggregate or survey benchmark (e.g. MSME Samadhaan, WBES).</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 4. Public Dataset
+  if (normStatus === "PUBLIC_DATASET" || normType === "PUBLIC_DATASET") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400",
+              className
+            )}
+          >
+            <CheckCircle2 className="size-3 shrink-0" />
+            Public Dataset
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Published public open dataset.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 5. Synthetic Data
+  if (normStatus === "SYNTHETIC" || normType === "SYNTHETIC") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400",
+              className
+            )}
+          >
+            <AlertTriangle className="size-3 shrink-0" />
+            Synthetic Data
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Artificially synthesized test records.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 6. Unverified
+  if (normStatus === "UNVERIFIED") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400",
+              className
+            )}
+          >
+            <OctagonAlert className="size-3 shrink-0" />
+            Unverified
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Data provenance or source authenticity is unverified.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 7. Default Demo / Test Data
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md border border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400",
+            className
+          )}
+        >
+          Demo / Test Data
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Demonstration scenario dataset. Not actual financial information.</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function MetricHint({ text }: { text: string }) {
   return (
     <Tooltip>

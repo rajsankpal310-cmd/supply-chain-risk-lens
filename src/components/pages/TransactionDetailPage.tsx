@@ -1,24 +1,45 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, CalendarClock, Landmark, Users } from "lucide-react";
-import { RiskBadge, StatusBadge } from "@/components/common/badges";
+import { ArrowLeft, CalendarClock, CheckCircle, Landmark, Network, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { ActionConfirmDialog } from "@/components/common/ActionConfirmDialog";
+import { ProvenanceBadge, RiskBadge, StatusBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState, LoadingSkeleton } from "@/components/common/states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/AuthContext";
 import { firmService, transactionService } from "@/services/dataServices";
 import { formatDate, formatINR } from "@/utils/format";
 
 export function TransactionDetailPage() {
   const { id } = useParams({ from: "/app/transactions/$id" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { can } = useAuth();
+  const [showPaidConfirm, setShowPaidConfirm] = useState(false);
+
   const txn = useQuery({ queryKey: ["transaction", id], queryFn: () => transactionService.getTransactionById(id) });
   const firms = useQuery({ queryKey: ["firms"], queryFn: firmService.getFirms });
   const related = useQuery({
     queryKey: ["related-transactions", id],
     queryFn: () => transactionService.getRelatedTransactions(txn.data!),
     enabled: Boolean(txn.data),
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: () => transactionService.updateTransaction(id, { paymentStatus: "PAID" }),
+    onSuccess: () => {
+      toast.success("Transaction completed. Outstanding amount cleared to ₹0.");
+      queryClient.invalidateQueries({ queryKey: ["transaction", id] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["network"] });
+      setShowPaidConfirm(false);
+    },
+    onError: () => toast.error("Could not complete the transaction settlement"),
   });
 
   if (txn.isLoading) return <LoadingSkeleton rows={6} />;
@@ -53,7 +74,25 @@ export function TransactionDetailPage() {
         title={`Invoice ${t.id}`}
         description={`${name(t.buyerId)} · ${formatINR(t.invoiceAmount)}`}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate({ to: "/app/network" })}
+              className="gap-1.5 text-xs"
+            >
+              <Network className="size-3.5 text-primary" /> View in Network
+            </Button>
+            {can("data:manage") && t.paymentStatus !== "PAID" && (
+              <Button
+                size="sm"
+                onClick={() => setShowPaidConfirm(true)}
+                className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CheckCircle className="size-3.5" /> Mark as Paid
+              </Button>
+            )}
+            <ProvenanceBadge sourceType={t.sourceType} dataStatus={t.dataStatus} />
             <StatusBadge status={t.paymentStatus} />
             <RiskBadge level={t.riskLevel} />
           </div>
@@ -131,6 +170,23 @@ export function TransactionDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ActionConfirmDialog
+        open={showPaidConfirm}
+        onOpenChange={setShowPaidConfirm}
+        title={`Mark Invoice ${t.id} as Paid?`}
+        description="Are you sure you want to complete this transaction settlement? This updates payment status to completed."
+        consequences={[
+          "Outstanding amount will be set to ₹0.",
+          "Payment received date will be recorded as today.",
+          "Related counterparty risk indices and financial stress will automatically recalculate.",
+          "The active debt obligation will be removed from the live supply chain network view.",
+          "Historical invoice record remains preserved in the ledger for audit and compliance.",
+        ]}
+        confirmLabel="Confirm Settlement"
+        isLoading={markPaidMutation.isPending}
+        onConfirm={() => markPaidMutation.mutate()}
+      />
     </div>
   );
 }

@@ -124,6 +124,9 @@ export const deadlockService = {
   getDeadlocks: () => resolve<Deadlock[]>(ENDPOINTS.deadlocks, () => deadlockStore),
   getDeadlockById: (id: string) => resolve<Deadlock | undefined>(ENDPOINTS.deadlock(id), () => deadlockStore.find((d) => d.id === id)),
   async resolveDeadlock(id: string): Promise<Deadlock> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<Deadlock>(ENDPOINTS.deadlockResolve(id), {});
+    }
     await mockDelay(600);
     deadlockStore = deadlockStore.map((d) =>
       d.id === id ? { ...d, resolved: true, deadlockRisk: Math.round(d.deadlockRisk * 0.45), severity: riskLevelFromScore(Math.round(d.deadlockRisk * 0.45)) } : d,

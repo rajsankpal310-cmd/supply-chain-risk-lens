@@ -21,6 +21,7 @@ export function NetworkGraph({
   highlightPath = [],
   onSelect,
   isolate = false,
+  activeOnly = false,
   className,
   height = 520,
 }: {
@@ -31,26 +32,33 @@ export function NetworkGraph({
   highlightPath?: string[];
   onSelect?: (id: string | null) => void;
   isolate?: boolean;
+  activeOnly?: boolean;
   className?: string;
   height?: number;
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<{ node: NetworkNode; x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const visible = useMemo(() => {
-    if (!isolate || !selectedId) return { nodes, edges };
+    let filteredEdges = edges;
+    if (activeOnly) {
+      filteredEdges = edges.filter((e) => e.hasActiveTransactions !== false);
+    }
+
+    if (!isolate || !selectedId) return { nodes, edges: filteredEdges };
     const neighbourIds = new Set<string>([selectedId]);
-    edges.forEach((e) => {
+    filteredEdges.forEach((e) => {
       if (e.source === selectedId) neighbourIds.add(e.target);
       if (e.target === selectedId) neighbourIds.add(e.source);
     });
     return {
       nodes: nodes.filter((n) => neighbourIds.has(n.id)),
-      edges: edges.filter((e) => neighbourIds.has(e.source) && neighbourIds.has(e.target)),
+      edges: filteredEdges.filter((e) => neighbourIds.has(e.source) && neighbourIds.has(e.target)),
     };
-  }, [nodes, edges, isolate, selectedId]);
+  }, [nodes, edges, isolate, selectedId, activeOnly]);
 
   const nodeMap = useMemo(() => new Map(visible.nodes.map((n) => [n.id, n])), [visible.nodes]);
   const maxExposure = Math.max(...nodes.map((n) => n.exposure), 1);
@@ -68,7 +76,7 @@ export function NetworkGraph({
   };
 
   return (
-    <div className={cn("border-border/70 bg-card relative overflow-hidden rounded-xl border", className)}>
+    <div ref={containerRef} className={cn("border-border/70 bg-card relative overflow-hidden rounded-xl border", className)}>
       <svg
         viewBox="0 0 1000 760"
         style={{ height }}
@@ -83,7 +91,10 @@ export function NetworkGraph({
           setPan({ x: drag.current.panX + (e.clientX - drag.current.x), y: drag.current.panY + (e.clientY - drag.current.y) });
         }}
         onMouseUp={() => (drag.current = null)}
-        onMouseLeave={() => (drag.current = null)}
+        onMouseLeave={() => {
+          drag.current = null;
+          setHoveredNode(null);
+        }}
       >
         <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
           {visible.edges.map((e) => {
@@ -92,6 +103,8 @@ export function NetworkGraph({
             if (!s || !t) return null;
             const active = selectedId === e.source || selectedId === e.target;
             const onPath = highlightPath.includes(e.source) && highlightPath.includes(e.target);
+            const isCompleted = e.hasActiveTransactions === false || e.status === "COMPLETED";
+
             return (
               <line
                 key={e.id}
@@ -99,9 +112,10 @@ export function NetworkGraph({
                 y1={s.y}
                 x2={t.x}
                 y2={t.y}
-                stroke={onPath ? "var(--color-risk-critical)" : active ? "var(--color-primary)" : "var(--color-border)"}
-                strokeWidth={Math.max(1, (e.exposure / maxExposure) * 14) * (onPath || active ? 1.6 : 1)}
-                strokeOpacity={selectedId && !active && !onPath ? 0.25 : 0.75}
+                stroke={onPath ? "var(--color-risk-critical)" : active ? "var(--color-primary)" : isCompleted ? "var(--color-muted-foreground)" : "var(--color-border)"}
+                strokeWidth={Math.max(1, ((e.activeExposure ?? e.exposure) / maxExposure) * 14) * (onPath || active ? 1.6 : 1)}
+                strokeDasharray={isCompleted ? "4 4" : undefined}
+                strokeOpacity={selectedId && !active && !onPath ? 0.2 : isCompleted ? 0.35 : 0.75}
               />
             );
           })}
@@ -123,15 +137,24 @@ export function NetworkGraph({
                 onKeyDown={(ev) => {
                   if (ev.key === "Enter") onSelect?.(n.id);
                 }}
-                onMouseEnter={() => setHovered(n.id)}
-                onMouseLeave={() => setHovered(null)}
+                onMouseEnter={(e) => {
+                  const rect = containerRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    setHoveredNode({
+                      node: n,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    });
+                  }
+                }}
+                onMouseLeave={() => setHoveredNode(null)}
                 opacity={dim ? 0.35 : 1}
               >
                 {(selectedId === n.id || highlightPath.includes(n.id)) && (
                   <circle r={r + 8} fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeDasharray="4 3" />
                 )}
                 <circle r={r} fill={fillFor(n)} fillOpacity={0.85} stroke="var(--color-background)" strokeWidth={2} />
-                {(hovered === n.id || selectedId === n.id || r > 22) && (
+                {(selectedId === n.id || r > 22) && (
                   <text y={r + 14} textAnchor="middle" fontSize={11} fill="var(--color-foreground)" className="pointer-events-none font-medium">
                     {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
                   </text>
@@ -141,6 +164,61 @@ export function NetworkGraph({
           })}
         </g>
       </svg>
+
+      {/* Floating Hover Card */}
+      {hoveredNode && (
+        <div
+          className="pointer-events-none absolute z-30 w-72 rounded-lg border border-border/80 bg-popover/95 p-3.5 shadow-xl backdrop-blur transition-all"
+          style={{
+            left: Math.min(hoveredNode.x + 16, (containerRef.current?.clientWidth || 800) - 300),
+            top: Math.min(hoveredNode.y + 16, (containerRef.current?.clientHeight || 600) - 220),
+          }}
+        >
+          <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2">
+            <div>
+              <p className="font-mono text-[10px] text-muted-foreground">{hoveredNode.node.id}</p>
+              <h4 className="font-semibold text-sm leading-snug text-foreground">{hoveredNode.node.name}</h4>
+              <p className="text-[11px] text-muted-foreground capitalize">{hoveredNode.node.role.toLowerCase()} · {hoveredNode.node.industry}</p>
+            </div>
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white uppercase"
+              style={{ backgroundColor: RISK_FILL[hoveredNode.node.riskLevel] }}
+            >
+              {hoveredNode.node.riskLevel} ({hoveredNode.node.riskScore})
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-2 text-[11px]">
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Avg Delay</span>
+              <span className="font-medium text-foreground">{hoveredNode.node.avgPaymentDelayDays ?? 0} days</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Outstanding</span>
+              <span className="font-medium font-mono text-foreground">
+                ₹{((hoveredNode.node.outstandingAmount ?? hoveredNode.node.exposure) / 100000).toFixed(1)}L
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Active Relations</span>
+              <span className="font-medium text-foreground">{hoveredNode.node.activeRelationshipsCount ?? "-"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Active Alerts</span>
+              <span className="font-medium text-foreground">{hoveredNode.node.activeAlertsCount ?? 0}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Txns (Active/Done)</span>
+              <span className="font-medium text-foreground">
+                {hoveredNode.node.activeTransactionsCount ?? "-"}/{hoveredNode.node.completedTransactionsCount ?? "-"}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground block text-[10px]">Cascade Impact</span>
+              <span className="font-medium text-foreground">{hoveredNode.node.impact}%</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="absolute top-3 right-3 flex flex-col gap-1">
         <Button variant="secondary" size="icon" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2.4, z + 0.2))}>
@@ -170,15 +248,17 @@ export function NetworkGraph({
 
 export function NetworkLegend({ view }: { view: NetworkView }) {
   return (
-    <div className="border-border/70 bg-popover/90 text-muted-foreground absolute bottom-3 left-3 rounded-lg border p-3 text-[11px] backdrop-blur">
-      <p className="text-foreground mb-1.5 font-semibold">Legend</p>
-      <p>Node = firm · Edge = business relationship</p>
-      <p>Node size = {view === "EXPOSURE" ? "exposure" : view === "IMPACT" ? "potential impact" : "transaction volume"}</p>
-      <p>Edge thickness = exposure</p>
-      <div className="mt-2 flex flex-wrap gap-2">
+    <div className="border-border/70 bg-popover/90 text-muted-foreground absolute bottom-3 left-3 rounded-lg border p-3 text-[11px] backdrop-blur max-w-xs shadow-md">
+      <p className="text-foreground mb-1 font-semibold">Topology Legend</p>
+      <div className="space-y-1 text-[10px]">
+        <p>• <span className="font-medium text-foreground">Node Size:</span> {view === "EXPOSURE" ? "exposure amount" : view === "IMPACT" ? "contagion impact %" : "transaction volume"}</p>
+        <p>• <span className="font-medium text-foreground">Solid Line:</span> Active transaction obligation</p>
+        <p>• <span className="font-medium text-foreground">Dashed Line:</span> Completed historical relationship</p>
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-2 border-t border-border/50 pt-2">
         {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((l) => (
           <span key={l} className="inline-flex items-center gap-1">
-            <span className="size-2.5 rounded-full" style={{ background: RISK_FILL[l] }} aria-hidden />
+            <span className="size-2 rounded-full" style={{ background: RISK_FILL[l] }} aria-hidden />
             {l.charAt(0) + l.slice(1).toLowerCase()}
           </span>
         ))}

@@ -14,6 +14,9 @@ export const recommendationService = {
   getForFirm: (firmId: string) =>
     resolve<Recommendation[]>(`${ENDPOINTS.recommendations}?firmId=${firmId}`, () => recommendationStore.filter((r) => r.firmId === firmId)),
   async setStatus(id: string, status: Recommendation["status"]): Promise<Recommendation> {
+    if (!USE_MOCK_API) {
+      return apiClient.put<Recommendation>(ENDPOINTS.recommendationStatus(id), { status });
+    }
     await mockDelay(250);
     recommendationStore = recommendationStore.map((r) => (r.id === id ? { ...r, status } : r));
     return recommendationStore.find((r) => r.id === id)!;
@@ -23,16 +26,25 @@ export const recommendationService = {
 export const alertService = {
   getAlerts: () => resolve<Alert[]>(ENDPOINTS.alerts, () => alertStore),
   async markRead(id: string, read = true) {
+    if (!USE_MOCK_API) {
+      return apiClient.put<Alert>(ENDPOINTS.alertRead(id), { read });
+    }
     await mockDelay(150);
     alertStore = alertStore.map((a) => (a.id === id ? { ...a, read } : a));
     return alertStore.find((a) => a.id === id)!;
   },
   async markAllRead() {
+    if (!USE_MOCK_API) {
+      return apiClient.put<Alert[]>(ENDPOINTS.alertReadAll, {});
+    }
     await mockDelay(200);
     alertStore = alertStore.map((a) => ({ ...a, read: true }));
     return alertStore;
   },
   async archive(id: string) {
+    if (!USE_MOCK_API) {
+      return apiClient.put<Alert>(ENDPOINTS.alertArchive(id), {});
+    }
     await mockDelay(150);
     alertStore = alertStore.map((a) => (a.id === id ? { ...a, archived: true, read: true } : a));
     return alertStore.find((a) => a.id === id)!;
@@ -91,6 +103,9 @@ export const optimizationService = {
 export const reportService = {
   getReports: () => resolve<Report[]>(ENDPOINTS.reports, () => reportStore),
   async generate(id: string): Promise<Report> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<Report>(ENDPOINTS.reportGenerate(id), {});
+    }
     await mockDelay(1000);
     reportStore = reportStore.map((r) => (r.id === id ? { ...r, status: "READY", lastGeneratedAt: new Date().toISOString().slice(0, 10) } : r));
     return reportStore.find((r) => r.id === id)!;

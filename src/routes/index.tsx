@@ -13,9 +13,12 @@ import {
   Sliders,
   TrendingUp,
   Workflow,
+  HelpCircle,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SystemGuideModal } from "@/components/common/SystemGuideModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,7 +31,7 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:title", content: "NEXUS-CFR — SME Financial Risk & Supply Chain Resilience" },
       {
-        property: "og:description",
+        name: "og:description",
         content: "Predict payment delays, trace supply-chain contagion, simulate shocks and act on prioritised recommendations.",
       },
     ],
@@ -55,9 +58,19 @@ const FEATURES = [
   { icon: Sliders, title: "Support Allocation Optimization", text: "Allocate a limited budget where it reduces risk the most." },
 ];
 
-const STEPS = ["Real Transaction Data", "Data Analysis", "Risk Prediction", "Network Analysis", "Scenario Simulation", "Recommendation"];
+const PROCESS_FLOW = [
+  { step: 1, title: "Transaction Data", desc: "Ingest invoices, terms, and counterparty records" },
+  { step: 2, title: "Data Validation", desc: "Reconcile payment statuses and record completeness" },
+  { step: 3, title: "Risk Analysis", desc: "Calculate payment delays and financial stress indices" },
+  { step: 4, title: "Network Analysis", desc: "Map buyer-supplier dependencies and exposure weights" },
+  { step: 5, title: "Impact Analysis", desc: "Detect circular deadlocks and stress contagion paths" },
+  { step: 6, title: "Decision Support", desc: "Formulate non-lending interventions and optimizations" },
+  { step: 7, title: "Action / Monitoring", desc: "Record decisions, update statuses, and dispatch alerts" },
+];
 
 function Landing() {
+  const [guideOpen, setGuideOpen] = useState(false);
+
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="border-border/70 sticky top-0 z-40 border-b backdrop-blur">
@@ -65,6 +78,10 @@ function Landing() {
           <div className="bg-primary text-primary-foreground grid size-8 place-items-center rounded-md font-bold">N</div>
           <span className="font-semibold tracking-tight">NEXUS-CFR</span>
           <nav className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setGuideOpen(true)} className="gap-1 text-xs">
+              <HelpCircle className="size-4 text-primary" />
+              <span>How It Works</span>
+            </Button>
             <Button variant="ghost" asChild>
               <Link to="/login">Sign in</Link>
             </Button>
@@ -148,14 +165,28 @@ function Landing() {
           </div>
         </Section>
 
-        <Section title="How it works" kicker="Workflow">
-          <div className="flex flex-wrap items-center gap-3">
-            {STEPS.map((s, i) => (
-              <span key={s} className="flex items-center gap-3">
-                <span className="border-border bg-card rounded-lg border px-4 py-2.5 text-sm font-medium">{s}</span>
-                {i < STEPS.length - 1 && <ArrowRight className="text-muted-foreground size-4" aria-hidden />}
-              </span>
+        <Section title="How NEXUS-CFR works" kicker="The 7-Step Resilience Process">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {PROCESS_FLOW.map((s) => (
+              <Card key={s.step} className="p-4 border-border/70 bg-card/60 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="bg-primary/10 text-primary text-xs font-mono font-bold px-2 py-0.5 rounded">
+                      Step {s.step}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-sm text-foreground">{s.title}</h4>
+                  <p className="text-muted-foreground text-xs mt-1.5 leading-relaxed">{s.desc}</p>
+                </div>
+              </Card>
             ))}
+            <Card className="p-4 border-dashed border-primary/40 bg-primary/5 flex flex-col items-center justify-center text-center">
+              <p className="font-semibold text-sm text-primary mb-1">Explore Full Methodology</p>
+              <p className="text-[11px] text-muted-foreground mb-3">Inspect metric definitions, glossary & roles</p>
+              <Button size="sm" variant="outline" onClick={() => setGuideOpen(true)} className="text-xs">
+                Open Product Guide
+              </Button>
+            </Card>
           </div>
         </Section>
 
@@ -217,6 +248,8 @@ function Landing() {
       <footer className="border-border/70 text-muted-foreground border-t py-8 text-center text-xs">
         NEXUS-CFR · Demo dataset only — sample data, not real financial information.
       </footer>
+
+      <SystemGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
     </div>
   );
 }

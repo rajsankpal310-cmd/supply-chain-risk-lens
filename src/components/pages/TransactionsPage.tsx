@@ -1,9 +1,9 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Download, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Download, Network, Plus, RotateCcw, Search, Trash2, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { RiskBadge, StatusBadge } from "@/components/common/badges";
+import { ProvenanceBadge, RiskBadge, StatusBadge } from "@/components/common/badges";
 import { DataTable, TablePagination, type Column } from "@/components/common/DataTable";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState, LoadingSkeleton } from "@/components/common/states";
@@ -80,7 +80,17 @@ export function TransactionsPage() {
   }
 
   const columns: Column<Transaction>[] = [
-    { key: "id", header: "Invoice", sortable: true, render: (t) => <span className="font-mono text-xs">{t.id}</span> },
+    {
+      key: "id",
+      header: "Invoice",
+      sortable: true,
+      render: (t) => (
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-xs font-semibold">{t.id}</span>
+          <ProvenanceBadge sourceType={t.sourceType} dataStatus={t.dataStatus} />
+        </div>
+      ),
+    },
     { key: "buyerId", header: "Buyer", sortable: true, render: (t) => <span className="font-medium">{firmName(t.buyerId)}</span> },
     { key: "supplierId", header: "Supplier", render: (t) => firmName(t.supplierId) },
     { key: "invoiceAmount", header: "Amount", sortable: true, align: "right", render: (t) => <span className="font-mono">{formatINR(t.invoiceAmount)}</span> },
@@ -97,22 +107,37 @@ export function TransactionsPage() {
     { key: "riskLevel", header: "Risk", sortable: true, align: "right", render: (t) => <RiskBadge level={t.riskLevel} /> },
     {
       key: "actions",
-      header: "",
+      header: "Actions",
       align: "right",
-      render: (t) =>
-        can("data:manage") ? (
+      render: (t) => (
+        <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Delete ${t.id}`}
+            title="View in Supply Chain Network"
+            aria-label={`View ${t.id} in Network`}
             onClick={(e) => {
               e.stopPropagation();
-              setPendingDelete(t);
+              navigate({ to: "/app/network" });
             }}
           >
-            <Trash2 className="text-muted-foreground size-4" aria-hidden />
+            <Network className="size-4 text-primary" />
           </Button>
-        ) : null,
+          {can("data:manage") && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Delete ${t.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPendingDelete(t);
+              }}
+            >
+              <Trash2 className="text-muted-foreground size-4" aria-hidden />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -228,6 +253,29 @@ export function TransactionsPage() {
               <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
             </div>
           </div>
+
+          {Boolean(search || status !== "ALL" || risk !== "ALL" || buyerId !== "ALL" || from || to) && (
+            <div className="border-t pt-2.5 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Active filters applied</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearch("");
+                  setStatus("ALL");
+                  setRisk("ALL");
+                  setBuyerId("ALL");
+                  setFrom("");
+                  setTo("");
+                  setPage(1);
+                }}
+                className="gap-1.5 text-xs h-7 text-primary hover:text-primary"
+              >
+                <RotateCcw className="size-3" />
+                Reset all filters
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -273,7 +321,7 @@ export function TransactionsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDelete?.id} will be removed from the working dataset. This only affects the demo data in your browser session.
+              Invoice {pendingDelete?.id} will be permanently removed from the ledger and risk metrics will be recalculated across connected firms.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

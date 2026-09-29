@@ -1,0 +1,95 @@
+{
+  "source": {
+    "publisher": "Ministry of Micro, Small and Medium Enterprises (MSME Samadhaan) & World Bank Group",
+    "datasetName": "India MSME Delayed Payments & Credit Terms Macro Benchmark",
+    "version": "2024.Q2",
+    "publicationDate": "2024-05-15",
+    "collectionPeriod": "2018-2024",
+    "url": "https://samadhaan.msme.gov.in/",
+    "license": "Government Open Data License - India (GODL) / World Bank Open Data",
+    "classification": "EXTERNAL_REFERENCE",
+    "granularity": "ADMINISTRATIVE_AGGREGATE",
+    "methodology": "Administrative grievance filings under Section 18 of the MSMED Act combined with microdata from the World Bank India Enterprise Survey 2022.",
+    "knownLimitations": "Administrative dispute filings capture distressed relationships; survey microdata reflects cross-sectional self-reporting by formal firms."
+  },
+  "statutoryCreditPeriodDays": 45,
+  "macroAverages": {
+    "medianPaymentDelayDays": 42,
+    "delayedTransactionProportion": 0.683,
+    "averageDisputeResolutionDays": 184,
+    "formalDisputeRecoveryRate": 0.424,
+    "annualEstimatedCreditLockedINR": "10.7 Lakh Crore"
+  },
+  "sectors": [
+    {
+      "sector": "Automotive Components",
+      "code": "AUTO",
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 108.2,
+      "avgPaymentDelayDays": 48.2,
+      "delinquencyRate": 0.38,
+      "cascadeVulnerability": "HIGH",
+      "sampleFirmCount": 1420
+    },
+    {
+      "sector": "Heavy Machinery & Capital Goods",
+      "code": "MACHINERY",
+      "avgContractedCreditDays": 90,
+      "avgActualPaymentDays": 154.5,
+      "avgPaymentDelayDays": 64.5,
+      "delinquencyRate": 0.46,
+      "cascadeVulnerability": "CRITICAL",
+      "sampleFirmCount": 980
+    },
+    {
+      "sector": "Textiles & Garments",
+      "code": "TEXTILES",
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 112.8,
+      "avgPaymentDelayDays": 52.8,
+      "delinquencyRate": 0.41,
+      "cascadeVulnerability": "HIGH",
+      "sampleFirmCount": 2150
+    },
+    {
+      "sector": "Electricals & Electronics",
+      "code": "ELECTRONICS",
+      "avgContractedCreditDays": 45,
+      "avgActualPaymentDays": 86.6,
+      "avgPaymentDelayDays": 41.6,
+      "delinquencyRate": 0.29,
+      "cascadeVulnerability": "MEDIUM",
+      "sampleFirmCount": 1120
+    },
+    {
+      "sector": "Pharmaceuticals & Chemicals",
+      "code": "PHARMA",
+      "avgContractedCreditDays": 45,
+      "avgActualPaymentDays": 81.4,
+      "avgPaymentDelayDays": 36.4,
+      "delinquencyRate": 0.24,
+      "cascadeVulnerability": "LOW",
+      "sampleFirmCount": 890
+    },
+    {
+      "sector": "Logistics & Freight Services",
+      "code": "LOGISTICS",
+      "avgContractedCreditDays": 30,
+      "avgActualPaymentDays": 69.1,
+      "avgPaymentDelayDays": 39.1,
+      "delinquencyRate": 0.33,
+      "cascadeVulnerability": "MEDIUM",
+      "sampleFirmCount": 1340
+    },
+    {
+      "sector": "Metals & Fabrication",
+      "code": "METALS",
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 118.7,
+      "avgPaymentDelayDays": 58.7,
+      "delinquencyRate": 0.44,
+      "cascadeVulnerability": "HIGH",
+      "sampleFirmCount": 1670
+    }
+  ]
+}

@@ -15,20 +15,27 @@ import {
   Lightbulb,
   LogOut,
   Menu,
+  Moon,
   Network,
   Search,
   Settings,
   Share2,
   Sliders,
+  Sun,
   Table2,
   TrendingUp,
   Upload,
   User as UserIcon,
   X,
+  HelpCircle,
+  Compass,
+  BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DemoDataBadge } from "@/components/common/badges";
+import { FirstTimeOnboardingModal } from "@/components/common/FirstTimeOnboardingModal";
+import { SystemGuideModal } from "@/components/common/SystemGuideModal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,13 +44,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import * as db from "@/mocks/data";
 import type { UserRole } from "@/types";
@@ -65,7 +71,7 @@ const NAV_GROUPS = [
   {
     label: "Intelligence",
     items: [
-      { to: "/app/risk", label: "Risk Intelligence", icon: Gauge },
+      { to: "/app/risk", label: "Portfolio Risk", icon: Gauge },
       { to: "/app/predictions", label: "Predictions", icon: TrendingUp },
       { to: "/app/network", label: "Supply Chain Network", icon: Network },
     ],
@@ -98,13 +104,37 @@ const NAV_GROUPS = [
   },
 ] as const;
 
+function canRoleAccess(role: UserRole | undefined, path: string): boolean {
+  if (!role || role === "SME_ADMIN") return true;
+  if (role === "ANALYST") {
+    if (path === "/app/upload" || path === "/app/settings") return false;
+    return true;
+  }
+  if (role === "VIEWER") {
+    const allowed = [
+      "/app/dashboard",
+      "/app/transactions",
+      "/app/firms",
+      "/app/relationships",
+      "/app/risk",
+      "/app/predictions",
+      "/app/network",
+      "/app/reports",
+      "/app/alerts",
+      "/app/profile",
+    ];
+    return allowed.includes(path);
+  }
+  return true;
+}
+
 const TITLES: Record<string, string> = {
   "/app/dashboard": "Dashboard",
   "/app/transactions": "Transactions",
   "/app/upload": "Upload Data",
   "/app/firms": "Firms",
   "/app/relationships": "Relationships",
-  "/app/risk": "Risk Intelligence",
+  "/app/risk": "Portfolio Risk",
   "/app/predictions": "Predictions",
   "/app/network": "Supply Chain Network",
   "/app/simulator": "Scenario Simulator",
@@ -119,14 +149,24 @@ const TITLES: Record<string, string> = {
 };
 
 export function AppLayout() {
-  const { user, logout, setRole } = useAuth();
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
+
+  const filteredNavGroups = useMemo(() => {
+    return NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canRoleAccess(user?.role, item.to)),
+    })).filter((group) => group.items.length > 0);
+  }, [user?.role]);
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -163,7 +203,7 @@ export function AppLayout() {
         {!collapsed && (
           <div className="min-w-0">
             <p className="text-sidebar-foreground truncate text-sm font-semibold tracking-tight">NEXUS-CFR</p>
-            <p className="text-muted-foreground truncate text-[10px] tracking-wide uppercase">Risk Intelligence</p>
+            <p className="text-muted-foreground truncate text-[10px] tracking-wide uppercase">Supply Chain Resilience</p>
           </div>
         )}
         <Button variant="ghost" size="icon" className="ml-auto hidden lg:inline-flex" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
@@ -175,7 +215,7 @@ export function AppLayout() {
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Main navigation">
-        {NAV_GROUPS.map((group) => (
+        {filteredNavGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && <p className="text-muted-foreground px-2 pb-1.5 text-[10px] font-semibold tracking-wider uppercase">{group.label}</p>}
             <ul className="space-y-0.5">
@@ -272,6 +312,44 @@ export function AppLayout() {
 
           <DemoDataBadge className="hidden xl:inline-flex" />
 
+          {/* Help & System Tour Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+                title="System Guide, Glossary & Product Tour"
+              >
+                <HelpCircle className="size-4 text-primary" />
+                <span>Help & Tour</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-xs">Self-Explanatory Guidance</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setTourOpen(true)}>
+                <Compass className="size-4 text-primary" />
+                <span>Product Walkthrough</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setGuideOpen(true)}>
+                <BookOpen className="size-4 text-primary" />
+                <span>How It Works & Glossary</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Theme Switcher */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          >
+            {theme === "dark" ? <Sun className="size-5" aria-hidden /> : <Moon className="size-5" aria-hidden />}
+          </Button>
+
           <Button variant="ghost" size="icon" className="relative" onClick={() => navigate({ to: "/app/alerts" })} aria-label={`Alerts, ${unread} unread`}>
             <Bell className="size-5" aria-hidden />
             {unread > 0 && <span className="bg-risk-critical text-background absolute top-1 right-1 grid size-4 place-items-center rounded-full text-[9px] font-bold">{unread}</span>}
@@ -283,30 +361,43 @@ export function AppLayout() {
                 <Avatar className="size-7">
                   <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-semibold">{user?.avatarInitials}</AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-32 truncate text-sm md:inline">{user?.companyName}</span>
+                <span className="hidden max-w-44 truncate text-sm font-medium md:inline">{user?.organizationName || user?.companyName}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel className="flex flex-col">
                 <span>{user?.fullName}</span>
                 <span className="text-muted-foreground text-xs font-normal">{user?.email}</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-muted-foreground text-[11px] tracking-wide uppercase">Active role (demo)</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={user?.role ?? "VIEWER"} onValueChange={(v) => setRole(v as UserRole)}>
-                {(["SME_ADMIN", "ANALYST", "VIEWER"] as UserRole[]).map((r) => (
-                  <DropdownMenuRadioItem key={r} value={r}>
-                    {r.replace("_", " ")}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+              <div className="px-2 py-1 flex items-center justify-between">
+                <span className="text-muted-foreground text-[11px] uppercase font-semibold">Organization</span>
+                <span className="text-xs font-medium truncate max-w-[120px]" title={user?.organizationName || user?.companyName}>
+                  {user?.organizationName || user?.companyName}
+                </span>
+              </div>
+              <div className="px-2 py-1 flex items-center justify-between">
+                <span className="text-muted-foreground text-[11px] uppercase font-semibold">Assigned Role</span>
+                <Badge variant="secondary" className="font-mono text-[10px] tracking-wide">
+                  {user?.role.replace("_", " ")}
+                </Badge>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setTourOpen(true)}>
+                <Compass className="size-4 text-primary" /> Quick Tour
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setGuideOpen(true)}>
+                <BookOpen className="size-4 text-primary" /> Product Guide
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => navigate({ to: "/app/profile" })}>
                 <UserIcon className="size-4" aria-hidden /> Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate({ to: "/app/settings" })}>
-                <Settings className="size-4" aria-hidden /> Settings
-              </DropdownMenuItem>
+              {canRoleAccess(user?.role, "/app/settings") && (
+                <DropdownMenuItem onSelect={() => navigate({ to: "/app/settings" })}>
+                  <Settings className="size-4" aria-hidden /> Settings
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => navigate({ to: "/app/reports" })}>
                 <BarChart3 className="size-4" aria-hidden /> Reports
               </DropdownMenuItem>
@@ -322,6 +413,10 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Self-Explanatory Modals */}
+      <FirstTimeOnboardingModal forceOpen={tourOpen} onClose={() => setTourOpen(false)} />
+      <SystemGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
     </div>
   );
 }

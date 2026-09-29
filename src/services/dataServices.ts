@@ -3,6 +3,7 @@ import { ENDPOINTS } from "@/api/contracts";
 import * as db from "@/mocks/data";
 import type {
   Firm,
+  ImportRow,
   Paginated,
   Relationship,
   Transaction,
@@ -18,7 +19,23 @@ let relationshipStore: Relationship[] = [...db.relationships];
 // ---------------------------------------------------------------- transactions
 export const transactionService = {
   async getTransactions(query: TransactionQuery = {}): Promise<Paginated<Transaction>> {
-    if (!USE_MOCK_API) return apiClient.post<Paginated<Transaction>>(ENDPOINTS.transactions, query);
+    if (!USE_MOCK_API) {
+      const params = new URLSearchParams();
+      if (query.page) params.set("page", String(query.page));
+      if (query.pageSize) params.set("pageSize", String(query.pageSize));
+      if (query.search) params.set("search", query.search);
+      if (query.status && query.status !== "ALL") params.set("status", query.status);
+      if (query.risk && query.risk !== "ALL") params.set("risk", query.risk);
+      if (query.buyerId && query.buyerId !== "ALL") params.set("buyerId", query.buyerId);
+      if (query.supplierId && query.supplierId !== "ALL") params.set("supplierId", query.supplierId);
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.sortBy) params.set("sortBy", query.sortBy);
+      if (query.sortDir) params.set("sortDir", query.sortDir);
+      const qs = params.toString();
+      const url = qs ? `${ENDPOINTS.transactions}?${qs}` : ENDPOINTS.transactions;
+      return apiClient.get<Paginated<Transaction>>(url);
+    }
     await mockDelay();
     const {
       search = "",
@@ -96,9 +113,34 @@ export const transactionService = {
     transactionStore = transactionStore.filter((t) => t.id !== id);
   },
 
-  async importTransactions(count: number): Promise<{ imported: number }> {
-    if (!USE_MOCK_API) return apiClient.post<{ imported: number }>(ENDPOINTS.transactionsImport, { count });
+  async importTransactions(payload: number | {
+    transactions: any[];
+    count?: number;
+    sourceType?: string;
+    sourceName?: string;
+    sourceUrl?: string;
+    datasetVersion?: string;
+  }): Promise<{ imported: number; batchId?: string }> {
+    if (!USE_MOCK_API) {
+      const body = typeof payload === "number" ? { count: payload } : payload;
+      return apiClient.post<{ imported: number; batchId?: string }>(ENDPOINTS.transactionsImport, body);
+    }
     await mockDelay(900);
+    const count = typeof payload === "number" ? payload : payload.count ?? payload.transactions?.length ?? 0;
+    if (typeof payload !== "number" && Array.isArray(payload.transactions)) {
+      const newTxns: Transaction[] = payload.transactions.map((t, idx) => ({
+        ...t,
+        id: t.id || `TXN-IMP-${String(transactionStore.length + idx + 1).padStart(4, "0")}`,
+        invoiceAmount: Number(t.invoiceAmount || 0),
+        outstandingAmount: Number(t.outstandingAmount ?? t.invoiceAmount ?? 0),
+        creditPeriodDays: t.creditPeriodDays ? Number(t.creditPeriodDays) : 30,
+        paymentStatus: t.paymentStatus || "PENDING",
+        riskLevel: t.riskLevel || "LOW",
+        sourceType: (payload.sourceType || "PRIMARY_TRANSACTION") as any,
+        sourceName: payload.sourceName || "Direct Import",
+      }));
+      transactionStore = [...newTxns, ...transactionStore];
+    }
     return { imported: count };
   },
 };
@@ -202,7 +244,40 @@ export const uploadService = {
     return { headers, rows };
   },
 
-  async validate(rows: Record<string, string>[], mapping: Record<string, string>): Promise<ValidationSummary> {
+  async inspectSchema(headers: string[], rows: Record<string, string>[]): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<any>(ENDPOINTS.uploadInspect, { headers, rows });
+    }
+    await mockDelay(300);
+    return {
+      headers,
+      suggestedMapping: {},
+      profiles: headers.map((h) => ({ header: h, inferredType: "STRING", missingCount: 0, missingRate: 0, sampleValues: [] })),
+    };
+  },
+
+  async validate(rows: Record<string, string>[], mapping: Record<string, string>): Promise<ValidationSummary & { scorecard?: any }> {
+    if (!USE_MOCK_API) {
+      const res = await apiClient.post<any>(ENDPOINTS.uploadValidate, { rows, mapping });
+      // Map backend validation output to frontend ValidationSummary structure
+      const rowResults = res.rowResults || [];
+      const rowsMapped: ImportRow[] = rowResults.map((r: any) => ({
+        raw: r.cleaned?.raw || {},
+        errors: r.errors || [],
+        valid: r.isValid,
+      }));
+      return {
+        totalRows: res.scorecard?.totalRecords ?? rows.length,
+        validRows: res.scorecard?.acceptedCount ?? rowsMapped.filter((r) => r.valid).length,
+        invalidRows: res.scorecard?.rejectedCount ?? rowsMapped.filter((r) => !r.valid).length,
+        duplicates: res.scorecard?.exactDuplicateCount ?? 0,
+        invalidDates: 0,
+        invalidAmounts: 0,
+        missingFields: 0,
+        rows: rowsMapped,
+        scorecard: res.scorecard,
+      };
+    }
     await mockDelay(700);
     const seen = new Set<string>();
     let duplicates = 0;
@@ -227,9 +302,18 @@ export const uploadService = {
       }
       for (const dateCol of ["invoice_date", "due_date", "payment_date"] as ExpectedColumn[]) {
         const value = get(dateCol);
-        if (value && Number.isNaN(new Date(value).getTime())) {
-          errors.push(`${dateCol.replace(/_/g, " ")} is not a valid date`);
-          invalidDates++;
+        if (value) {
+          const parsedDate = new Date(value);
+          let isValid = !Number.isNaN(parsedDate.getTime());
+          if (!isValid && /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(value)) {
+            const parts = value.split(/[\/\-]/);
+            const altDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            isValid = !Number.isNaN(altDate.getTime());
+          }
+          if (!isValid) {
+            errors.push(`${dateCol.replace(/_/g, " ")} is not a valid date`);
+            invalidDates++;
+          }
         }
       }
       const id = get("transaction_id");
@@ -255,12 +339,111 @@ export const uploadService = {
     };
   },
 
+  async importTransactions(payload: {
+    transactions?: any[] | undefined;
+    rows?: any[] | undefined;
+    mapping?: Record<string, string> | undefined;
+    sourceType?: string | undefined;
+    sourceName?: string | undefined;
+    sourceOrg?: string | undefined;
+    sourceUrl?: string | undefined;
+    datasetVersion?: string | undefined;
+    license?: string | undefined;
+    dataGranularity?: string | undefined;
+  }): Promise<{ imported: number; batchId: string; rejected?: number; duplicates?: number; qualityScore?: number; scorecard?: any }> {
+    if (!USE_MOCK_API) {
+      return apiClient.post(ENDPOINTS.uploadImport, payload);
+    }
+    await mockDelay(600);
+    return { imported: (payload.transactions || payload.rows || []).length, batchId: `BATCH-${Date.now()}` };
+  },
+
+  async getImportBatches(page = 1, pageSize = 20): Promise<Paginated<any>> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<Paginated<any>>(`${ENDPOINTS.uploadBatches}?page=${page}&limit=${pageSize}`);
+    }
+    await mockDelay(300);
+    return { items: [], total: 0, page, pageSize };
+  },
+
+  async getImportBatchById(id: string): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(ENDPOINTS.uploadBatch(id));
+    }
+    await mockDelay(300);
+    return null;
+  },
+
   sampleTemplateCsv(): string {
-    const header = EXPECTED_COLUMNS.join(",");
-    const sample = db.transactions.slice(0, 5).map((t) =>
-      [t.id, t.smeId, t.buyerId, t.supplierId ?? "", t.invoiceAmount, t.invoiceDate, t.dueDate, t.paymentDate ?? "", t.creditPeriodDays ?? "", t.outstandingAmount, t.paymentStatus].join(","),
-    );
-    return [header, ...sample].join("\n");
+    return EXPECTED_COLUMNS.join(",") + "\n";
+  },
+};
+
+export const governanceService = {
+  async getAuditReport(): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(ENDPOINTS.governanceAudit);
+    }
+    await mockDelay(300);
+    return null;
+  },
+};
+
+export const connectorService = {
+  async listConnectors(): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(ENDPOINTS.connectors);
+    }
+    await mockDelay(300);
+    return [];
+  },
+
+  async getConnector(id: string): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(ENDPOINTS.connector(id));
+    }
+    await mockDelay(300);
+    return null;
+  },
+
+  async testConnector(id: string, credentials: Record<string, any>): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<any>(ENDPOINTS.connectorTest(id), { credentials });
+    }
+    await mockDelay(300);
+    return { success: false, message: "Mock connector test" };
+  },
+
+  async getContract(): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(ENDPOINTS.connectorContract);
+    }
+    await mockDelay(300);
+    return null;
+  },
+
+  async getAcquisitionStatus(): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<any>(`${ENDPOINTS.connectors}/acquisition/status`);
+    }
+    await mockDelay(200);
+    return {
+      realDataAcquired: false,
+      status: "NO_REAL_SOURCE_CONNECTED",
+      source: null,
+      actualRecordCount: 0,
+      mlGateStatus: "LOCKED",
+      exactBlocker: "Authorized real enterprise primary transaction source has not yet been connected or uploaded.",
+      missingHumanAction: "UPLOAD_AUTHORIZED_REAL_EXPORT",
+    };
+  },
+
+  async ingestControlledFile(payload: any): Promise<any> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<any>(`${ENDPOINTS.connectors}/controlled-file/ingest`, payload);
+    }
+    await mockDelay(300);
+    return { success: true };
   },
 };
 

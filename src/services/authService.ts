@@ -28,7 +28,12 @@ export const DEMO_CREDENTIALS = { email: "demo@nexuscfr.in", password: "demo1234
 export const authService = {
   async login({ email, password }: Credentials): Promise<User> {
     if (!USE_MOCK_API) {
-      const user = await apiClient.post<User>(ENDPOINTS.login, { email, password });
+      const res = await apiClient.post<{ user: User; token: string } | User>(ENDPOINTS.login, { email, password });
+      const user = "user" in res ? res.user : res;
+      const token = "token" in res ? res.token : null;
+      if (token && typeof window !== "undefined") {
+        window.localStorage.setItem("nexus-cfr.token", token);
+      }
       sessionStore.write(user);
       return user;
     }
@@ -50,7 +55,12 @@ export const authService = {
 
   async register(input: RegisterInput): Promise<User> {
     if (!USE_MOCK_API) {
-      const user = await apiClient.post<User>(ENDPOINTS.register, input);
+      const res = await apiClient.post<{ user: User; token: string } | User>(ENDPOINTS.register, input);
+      const user = "user" in res ? res.user : res;
+      const token = "token" in res ? res.token : null;
+      if (token && typeof window !== "undefined") {
+        window.localStorage.setItem("nexus-cfr.token", token);
+      }
       sessionStore.write(user);
       return user;
     }
@@ -82,6 +92,9 @@ export const authService = {
 
   async logout(): Promise<void> {
     await mockDelay(120);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("nexus-cfr.token");
+    }
     sessionStore.write(null);
   },
 

@@ -15,6 +15,8 @@ export interface User {
   companySize: string;
   role: UserRole;
   avatarInitials: string;
+  organizationId?: string;
+  organizationName?: string;
 }
 
 export interface Credentials {
@@ -50,6 +52,33 @@ export interface Firm {
   isDemo: true;
 }
 
+export type DataSourceType =
+  | "PRIMARY_TRANSACTION"
+  | "PUBLIC_DATASET"
+  | "EXTERNAL_REFERENCE"
+  | "DERIVED"
+  | "DEMO_ONLY"
+  | "SIMULATED"
+  | "SYNTHETIC"
+  | "SURVEY"
+  | "ADMINISTRATIVE";
+
+export type DataStatus =
+  | "REAL_OBSERVED"
+  | "PUBLIC_DATASET"
+  | "EXTERNAL_REFERENCE"
+  | "ADMINISTRATIVE_AGGREGATE"
+  | "SURVEY_MICRODATA"
+  | "SIMULATED"
+  | "PUBLIC_SIMULATED_DATA"
+  | "SYNTHETIC"
+  | "DEMO"
+  | "VALIDATED"
+  | "ACTIVE"
+  | "ARCHIVED"
+  | "SAMPLE"
+  | "UNVERIFIED";
+
 export interface Transaction {
   id: string;
   smeId: string;
@@ -64,6 +93,11 @@ export interface Transaction {
   outstandingAmount: number;
   paymentStatus: PaymentStatus;
   riskLevel: RiskLevel;
+  sourceType?: DataSourceType;
+  sourceName?: string;
+  sourceUrl?: string;
+  dataStatus?: DataStatus;
+  batchId?: string;
 }
 
 export interface Relationship {
@@ -105,6 +139,10 @@ export interface Prediction {
   confidence: number; // 0-100
   factors: RiskFactor[];
   horizon: { days: 7 | 30 | 60 | 90; risk: number }[];
+  isModelPrediction?: boolean;
+  inferenceType?: "APPROVED_ML_MODEL" | "NON_ML_FALLBACK" | string;
+  governanceNotice?: string;
+  disclaimer?: string;
 }
 
 export type ScenarioType =
@@ -243,6 +281,7 @@ export interface Report {
 }
 
 export interface DashboardSummary {
+  userRole?: UserRole;
   kpis: {
     key: string;
     label: string;
@@ -260,6 +299,51 @@ export interface DashboardSummary {
   stressTrend: { date: string; stress: number }[];
   topRiskyBuyers: TopFirmRow[];
   topRiskySuppliers: TopFirmRow[];
+  dataProvenanceSummary?: {
+    totalBatches: number;
+    lastBatch: {
+      id: string;
+      sourceType: string;
+      sourceName: string;
+      importedAt: string;
+      recordCount: number;
+      dataStatus: string;
+    } | null;
+  };
+  overdueTransactions?: {
+    id: string;
+    buyerId: string;
+    buyerName: string;
+    smeId: string;
+    smeName: string;
+    invoiceAmount: number;
+    outstandingAmount: number;
+    dueDate: string;
+    delayDays: number;
+    status: PaymentStatus;
+    riskLevel: RiskLevel;
+  }[];
+  analyticalSummary?: {
+    activeDeadlocksCount: number;
+    totalLockedExposure: number;
+    simulationsCount: number;
+    latestSimulation: {
+      id: string;
+      scenarioName: string;
+      cascadeRisk: number;
+      expectedLoss: number;
+      status: string;
+      startedAt: string;
+    } | null;
+  };
+  executiveSummary?: {
+    portfolioHealthStatus: "RESILIENT" | "MODERATE_RISK" | "CRITICAL_ATTENTION";
+    criticalFirmsCount: number;
+    atRiskFirmsCount: number;
+    reportsCount: number;
+    totalFirmsCount: number;
+    resilienceIndex: number;
+  };
 }
 
 export interface TopFirmRow {
@@ -284,6 +368,12 @@ export interface NetworkNode {
   impact: number;
   x: number;
   y: number;
+  avgPaymentDelayDays?: number;
+  outstandingAmount?: number;
+  activeRelationshipsCount?: number;
+  activeTransactionsCount?: number;
+  completedTransactionsCount?: number;
+  activeAlertsCount?: number;
 }
 
 export interface NetworkEdge {
@@ -293,6 +383,11 @@ export interface NetworkEdge {
   exposure: number;
   dependency: number;
   criticality: RiskLevel;
+  activeExposure?: number;
+  activeTransactionCount?: number;
+  completedTransactionCount?: number;
+  hasActiveTransactions?: boolean;
+  status?: "ACTIVE" | "COMPLETED";
 }
 
 export interface NetworkGraph {
@@ -336,4 +431,52 @@ export interface ValidationSummary {
   invalidAmounts: number;
   missingFields: number;
   rows: ImportRow[];
+}
+
+export interface QualityScorecard {
+  totalRecords: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  exactDuplicateCount: number;
+  potentialDuplicateCount: number;
+  completenessRate: number;
+  validityRate: number;
+  duplicateRate: number;
+  consistencyRate: number;
+  overallQualityScore: number;
+  qualityGrade: "A" | "B" | "C" | "D";
+  fieldMissingness: Record<string, number>;
+  rejectionReasons: {
+    row: number;
+    field: string;
+    rule: string;
+    problem: string;
+    expectedFormat: string;
+    example: string;
+  }[];
+  summaryMessage: string;
+}
+
+export interface ImportBatchRecord {
+  id: string;
+  organizationId: string;
+  sourceType: DataSourceType;
+  sourceName: string;
+  sourceOrg?: string | null;
+  sourceUrl?: string | null;
+  sourceDate?: string | null;
+  datasetVersion?: string | null;
+  license?: string | null;
+  dataGranularity?: string | null;
+  status: string;
+  importedAt: string;
+  importedBy?: string | null;
+  recordCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
+  duplicateCount: number;
+  dataStatus: string;
+  qualityReport?: string | null;
+  rawSample?: string | null;
+  createdAt: string;
 }
