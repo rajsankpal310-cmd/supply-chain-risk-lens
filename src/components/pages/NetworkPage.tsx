@@ -16,8 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { INDUSTRIES } from "@/mocks/data";
 import { networkService } from "@/services/analyticsServices";
 import { firmService } from "@/services/dataServices";
-import type { RiskLevel } from "@/types";
-import { formatINR } from "@/utils/format";
+import { formatCompanyName, formatINR } from "@/utils/format";
 
 const RISKS: (RiskLevel | "ALL")[] = ["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
@@ -53,19 +52,47 @@ export function NetworkPage() {
 
   const { nodes, edges } = netQuery.data;
 
+  const selectedFirm = selectedId ? firmsQuery.data?.find((f) => f.id === selectedId) : null;
+
   const filteredNodes = useMemo(() => {
     const term = search.trim().toLowerCase();
     return nodes.filter((n) => {
       if (selectedId && n.id === selectedId) return true;
       if (risk !== "ALL" && n.riskLevel !== risk) return false;
       if (industry !== "ALL" && n.industry !== industry) return false;
-      if (term && !n.name.toLowerCase().includes(term) && !n.id.toLowerCase().includes(term)) return false;
+      const cleanName = formatCompanyName(n.name, n.id).toLowerCase();
+      if (term && !cleanName.includes(term) && !n.id.toLowerCase().includes(term)) return false;
       return true;
     });
   }, [nodes, search, risk, industry, selectedId]);
 
-  const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
-  const selectedFirm = selectedId ? firmsQuery.data?.find((f) => f.id === selectedId) : null;
+  const selectedNode = useMemo(() => {
+    if (!selectedId) return null;
+    const direct = nodes.find((n) => n.id === selectedId);
+    if (direct) return direct;
+    if (selectedFirm) {
+      return {
+        id: selectedFirm.id,
+        name: selectedFirm.name,
+        industry: selectedFirm.industry,
+        role: selectedFirm.role,
+        volume: selectedFirm.transactionCount,
+        riskScore: selectedFirm.riskScore,
+        riskLevel: selectedFirm.riskLevel,
+        exposure: selectedFirm.outstandingAmount,
+        impact: Math.round(selectedFirm.riskScore * 0.6),
+        avgPaymentDelayDays: selectedFirm.avgPaymentDelayDays,
+        outstandingAmount: selectedFirm.outstandingAmount,
+        activeRelationshipsCount: 0,
+        activeTransactionsCount: 0,
+        completedTransactionsCount: 0,
+        activeAlertsCount: 0,
+        x: 500,
+        y: 380,
+      };
+    }
+    return null;
+  }, [selectedId, nodes, selectedFirm]);
 
   const counterparties = useMemo(() => {
     if (!selectedId) return [];
@@ -190,7 +217,9 @@ export function NetworkPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-muted-foreground font-mono text-xs">{selectedNode.id}</p>
-                <h3 className="font-semibold text-base leading-tight">{selectedNode.name}</h3>
+                <h3 className="font-semibold text-base leading-tight">
+                  {formatCompanyName(selectedNode.name, selectedFirm?.name, selectedNode.id)}
+                </h3>
                 <p className="text-muted-foreground text-xs capitalize">{selectedNode.role.toLowerCase()} · {selectedNode.industry}</p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setSelectedId(null)}>
@@ -261,7 +290,7 @@ export function NetworkPage() {
                       onClick={() => setSelectedId(cp.counterpartyId)}
                     >
                       <div className="truncate pr-1">
-                        <p className="font-medium truncate">{cp.node?.name || cp.counterpartyId}</p>
+                        <p className="font-medium truncate">{formatCompanyName(cp.node?.name, cp.counterpartyId)}</p>
                         <p className="text-[10px] text-muted-foreground">
                           {cp.isActive ? (
                             <span className="text-emerald-500 font-medium">● Active Obligation</span>

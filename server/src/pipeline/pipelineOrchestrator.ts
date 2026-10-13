@@ -3,6 +3,7 @@ import { prisma } from "../config/database";
 import { FirmRepository } from "../repositories/firm.repository";
 import { TransactionRepository } from "../repositories/transaction.repository";
 import { recalculateFirmRisk } from "../utils/riskCalculator";
+import { sanitizeCompanyName } from "../utils/sanitize";
 import { BusinessValidator, RowValidationResult } from "./businessValidator";
 import { DataCleaner } from "./dataCleaner";
 import { DuplicateCheckResult, DuplicateDetector } from "./duplicateDetector";
@@ -178,21 +179,45 @@ export class PipelineOrchestrator {
     // 4. Counterparty pre-resolution under organizationId
     const distinctFirmIds = new Set<string>();
     const firmNameMap = new Map<string, string>();
+
+    const getRawVal = (raw: Record<string, any>, concept: string): any => {
+      if (!raw || typeof raw !== "object") return undefined;
+      const col = mapping[concept];
+      if (col && raw[col] !== undefined) return raw[col];
+      for (const [srcCol, canon] of Object.entries(mapping)) {
+        if (canon === concept && raw[srcCol] !== undefined) return raw[srcCol];
+      }
+      if (raw[concept] !== undefined) return raw[concept];
+      const camel = concept.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+      if (raw[camel] !== undefined) return raw[camel];
+      return undefined;
+    };
+
     for (const row of acceptedRows) {
+      const raw = row.raw || {};
+      const rawSupplierName = getRawVal(raw, "supplier_name") || getRawVal(raw, "vendor_name") || getRawVal(raw, "seller_name");
+      const rawBuyerName = getRawVal(raw, "buyer_name") || getRawVal(raw, "customer_name") || getRawVal(raw, "client_name");
+
       if (row.smeId) {
         distinctFirmIds.add(row.smeId);
-        if (row.raw && mapping.supplier_name && row.raw[mapping.supplier_name]) {
-          firmNameMap.set(row.smeId, String(row.raw[mapping.supplier_name]));
+        if (rawSupplierName && !firmNameMap.has(row.smeId)) {
+          const clean = sanitizeCompanyName(rawSupplierName, row.smeId);
+          firmNameMap.set(row.smeId, clean);
         }
       }
       if (row.buyerId) {
         distinctFirmIds.add(row.buyerId);
-        if (row.raw && mapping.buyer_name && row.raw[mapping.buyer_name]) {
-          firmNameMap.set(row.buyerId, String(row.raw[mapping.buyer_name]));
+        if (rawBuyerName && !firmNameMap.has(row.buyerId)) {
+          const clean = sanitizeCompanyName(rawBuyerName, row.buyerId);
+          firmNameMap.set(row.buyerId, clean);
         }
       }
       if (row.supplierId) {
         distinctFirmIds.add(row.supplierId);
+        if (rawSupplierName && !firmNameMap.has(row.supplierId)) {
+          const clean = sanitizeCompanyName(rawSupplierName, row.supplierId);
+          firmNameMap.set(row.supplierId, clean);
+        }
       }
     }
 
@@ -260,7 +285,8 @@ export class PipelineOrchestrator {
 
       if (firmIdMap.has(targetId)) continue;
 
-      const firmName = firmNameMap.get(firmIdentifier) || firmIdentifier;
+      const rawFirmName = firmNameMap.get(firmIdentifier) || firmIdentifier;
+      const firmName = sanitizeCompanyName(rawFirmName, targetId);
       firmsToCreate.push({
         id: targetId,
         organizationId,

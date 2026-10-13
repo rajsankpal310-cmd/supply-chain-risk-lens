@@ -47,3 +47,47 @@ export function toCsv(rows: Record<string, unknown>[]): string {
   const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
 }
+
+/**
+ * Safely formats and sanitizes a company / counterparty display name.
+ * Prevents "undefined", "[object Object]", empty strings, and null
+ * from displaying in cards, tables, tooltips, or network graphs.
+ */
+export function formatCompanyName(
+  name?: unknown,
+  fallbackName?: unknown,
+  fallbackId?: unknown
+): string {
+  const sanitize = (val: unknown): string | null => {
+    if (val === null || val === undefined) return null;
+    if (typeof val === "object") {
+      const obj = val as Record<string, unknown>;
+      const candidate = obj.name ?? obj.companyName ?? obj.label ?? obj.id;
+      return sanitize(candidate);
+    }
+    const str = String(val).trim();
+    if (
+      !str ||
+      str === "undefined" ||
+      str === "null" ||
+      str === "[object Object]" ||
+      str === "NaN"
+    ) {
+      return null;
+    }
+    return str;
+  };
+
+  const clean = sanitize(name) ?? sanitize(fallbackName);
+  if (clean) return clean;
+
+  const idClean = sanitize(fallbackId);
+  if (idClean) {
+    if (/^FIRM-\d+$/i.test(idClean)) {
+      return `Firm ${idClean.toUpperCase()}`;
+    }
+    return `Counterparty (${idClean})`;
+  }
+
+  return "Unknown Counterparty";
+}

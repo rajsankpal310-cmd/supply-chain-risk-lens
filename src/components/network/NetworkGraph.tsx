@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { NetworkEdge, NetworkNode } from "@/types";
+import { formatCompanyName } from "@/utils/format";
 
 export type NetworkView = "NETWORK" | "RISK" | "EXPOSURE" | "IMPACT";
 
@@ -129,7 +130,7 @@ export function NetworkGraph({
                 className="cursor-pointer"
                 tabIndex={0}
                 role="button"
-                aria-label={`${n.name}, risk ${n.riskLevel}`}
+                aria-label={`${formatCompanyName(n.name, n.id)}, risk ${n.riskLevel}`}
                 onClick={(ev) => {
                   ev.stopPropagation();
                   onSelect?.(selectedId === n.id ? null : n.id);
@@ -159,7 +160,10 @@ export function NetworkGraph({
                 <circle r={r} fill={fillFor(n)} fillOpacity={0.9} stroke="var(--color-background)" strokeWidth={selectedId === n.id ? 3 : 2} />
                 {(selectedId === n.id || r > 22) && (
                   <text y={r + 14} textAnchor="middle" fontSize={11} fill="var(--color-foreground)" className="pointer-events-none font-medium">
-                    {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}
+                    {(() => {
+                      const label = formatCompanyName(n.name, n.id);
+                      return label.length > 22 ? `${label.slice(0, 21)}…` : label;
+                    })()}
                   </text>
                 )}
               </g>
@@ -180,7 +184,9 @@ export function NetworkGraph({
           <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2">
             <div>
               <p className="font-mono text-[10px] text-muted-foreground">{hoveredNode.node.id}</p>
-              <h4 className="font-semibold text-sm leading-snug text-foreground">{hoveredNode.node.name}</h4>
+              <h4 className="font-semibold text-sm leading-snug text-foreground">
+                {formatCompanyName(hoveredNode.node.name, hoveredNode.node.id)}
+              </h4>
               <p className="text-[11px] text-muted-foreground capitalize">{hoveredNode.node.role.toLowerCase()} · {hoveredNode.node.industry}</p>
             </div>
             <span
