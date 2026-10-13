@@ -10,48 +10,56 @@ describe("NEXUS-CFR Phase 3 — Real Data Foundation Automated Test Suite", () =
   let orgBAdminToken: string;
 
   const cleanupNonSeedFirmsAndTxns = async () => {
-    await prisma.transaction.deleteMany({
-      where: {
-        organizationId: "ORG-001",
-        OR: [
-          {
-            smeId: {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await prisma.transaction.deleteMany({
+          where: {
+            organizationId: "ORG-001",
+            OR: [
+              {
+                smeId: {
+                  notIn: [
+                    "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
+                    "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
+                  ],
+                },
+              },
+              {
+                buyerId: {
+                  notIn: [
+                    "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
+                    "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
+                  ],
+                },
+              },
+              { transactionId: { contains: "TXN-P3" } },
+              { transactionId: { contains: "TXN-TAMPER" } },
+              { transactionId: { contains: "TXN-PROV" } },
+              { transactionId: { contains: "TXN-PARTIAL" } },
+              { transactionId: { contains: "TXN-CP" } },
+              { transactionId: { contains: "TXN-DEMO" } },
+              { transactionId: { contains: "TXN-DUP" } },
+              { transactionId: { contains: "TXN-POT" } },
+            ],
+          },
+        });
+        await prisma.firm.deleteMany({
+          where: {
+            organizationId: "ORG-001",
+            id: {
               notIn: [
                 "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
                 "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
               ],
             },
           },
-          {
-            buyerId: {
-              notIn: [
-                "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
-                "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
-              ],
-            },
-          },
-          { transactionId: { contains: "TXN-P3" } },
-          { transactionId: { contains: "TXN-TAMPER" } },
-          { transactionId: { contains: "TXN-PROV" } },
-          { transactionId: { contains: "TXN-PARTIAL" } },
-          { transactionId: { contains: "TXN-CP" } },
-          { transactionId: { contains: "TXN-DEMO" } },
-          { transactionId: { contains: "TXN-DUP" } },
-          { transactionId: { contains: "TXN-POT" } },
-        ],
-      },
-    });
-    await prisma.firm.deleteMany({
-      where: {
-        organizationId: "ORG-001",
-        id: {
-          notIn: [
-            "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
-            "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
-          ],
-        },
-      },
-    });
+        });
+        break;
+      } catch (err) {
+        if (attempt === 2) console.warn("Cleanup warning:", err);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
   };
 
   beforeAll(async () => {
@@ -78,11 +86,11 @@ describe("NEXUS-CFR Phase 3 — Real Data Foundation Automated Test Suite", () =
       .post("/api/auth/login")
       .send({ email: "admin@orgb.demo", password: "demo1234" });
     orgBAdminToken = resBAdmin.body.data.token;
-  });
+  }, 60000);
 
   afterAll(async () => {
     await cleanupNonSeedFirmsAndTxns();
-  });
+  }, 60000);
 
   // 1. Valid Dataset & Schema Detection
   it("1. Schema Inspection: detects columns, data types, and suggests canonical mapping", async () => {

@@ -76,8 +76,8 @@ export function FirmDetailPage() {
             <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/simulator" })}>
               <Activity className="size-3.5" aria-hidden /> Run Scenario
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/network" })}>
-              <Network className="size-3.5" aria-hidden /> View Network
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/network", search: { firmId: firm.id } as any })}>
+              <Network className="size-3.5" aria-hidden /> View in Network
             </Button>
           </div>
         }

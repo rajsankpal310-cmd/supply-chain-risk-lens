@@ -7,7 +7,11 @@
  * unmapped fields, and rejects invalid records without silent financial inferences.
  */
 
-import { CanonicalInvoiceContract, PROVIDER_MAPPING_REGISTRY } from "./canonicalContract";
+import {
+  CanonicalInvoiceContract,
+  CanonicalERPEventContract,
+  PROVIDER_MAPPING_REGISTRY,
+} from "./canonicalContract";
 
 export interface RecordTransformationResult {
   sourceRecordIndex: number;
@@ -15,7 +19,7 @@ export interface RecordTransformationResult {
   canonicalTransactionId?: string;
   mappingVersion: string;
   mappingResult: "SUCCESS" | "WARNING" | "FAILED";
-  canonicalRecord?: CanonicalInvoiceContract;
+  canonicalRecord?: CanonicalInvoiceContract | CanonicalERPEventContract;
   unmappedFields: string[];
   transformationWarnings: string[];
   transformationErrors: string[];
@@ -27,6 +31,15 @@ export interface CanonicalNormalizationBatchResult {
   warningCount: number;
   failedCount: number;
   canonicalRecords: CanonicalInvoiceContract[];
+  results: RecordTransformationResult[];
+}
+
+export interface ERPEventNormalizationBatchResult {
+  totalRawRecords: number;
+  successfulCount: number;
+  warningCount: number;
+  failedCount: number;
+  canonicalEvents: CanonicalERPEventContract[];
   results: RecordTransformationResult[];
 }
 
@@ -245,4 +258,188 @@ export class CanonicalTransformer {
       results,
     };
   }
+
+  /**
+   * Normalizes an array of raw ERP event log records (e.g. BPI Challenge 2019)
+   * into CanonicalERPEventContracts with strict zero-fabrication rules.
+   */
+  public static normalizeERPEventLogBatch(
+    rawEvents: Record<string, any>[],
+    providerId = "BPI_CHALLENGE_2019"
+  ): ERPEventNormalizationBatchResult {
+    const providerDef = PROVIDER_MAPPING_REGISTRY[providerId] || PROVIDER_MAPPING_REGISTRY.BPI_CHALLENGE_2019;
+    const mappingVersion = providerDef.version;
+
+    const results: RecordTransformationResult[] = [];
+    const canonicalEvents: CanonicalERPEventContract[] = [];
+
+    rawEvents.forEach((raw, idx) => {
+      const warnings: string[] = [];
+      const errors: string[] = [];
+
+      const caseId = String(
+        raw["case:concept:name"] || raw.case_id || raw.caseId || raw.CaseId || raw.CASE_ID || ""
+      );
+      const vendorId = String(
+        raw["case:Vendor"] || raw.vendor_id || raw.vendorId || raw.Vendor || raw.VENDOR_ID || ""
+      );
+      const companyId = String(
+        raw["case:Company"] || raw.company_id || raw.companyId || raw.Company || raw.COMPANY_ID || "COMP-DEFAULT"
+      );
+      const eventType = String(
+        raw["concept:name"] ||
+        raw.event_type ||
+        raw.eventType ||
+        raw.activity ||
+        raw.ACTIVITY ||
+        (raw.events && raw.events[0]?.activity) ||
+        "Process Lifecycle"
+      );
+
+      if (!caseId) {
+        errors.push("Missing mandatory ERP event field: case_id cannot be resolved.");
+      }
+      if (!vendorId) {
+        errors.push("Missing mandatory ERP event field: vendor_id cannot be resolved.");
+      }
+      if (!eventType) {
+        errors.push("Missing mandatory ERP event field: event_type cannot be resolved.");
+      }
+
+      // Event timestamp parsing
+      let timestampIso = "";
+      const rawTimestamp =
+        raw["time:timestamp"] ||
+        raw.event_timestamp ||
+        raw.timestamp ||
+        raw.Timestamp ||
+        raw.created_at ||
+        raw.invoice_event;
+      if (rawTimestamp) {
+        const d = new Date(rawTimestamp);
+        if (!isNaN(d.getTime())) {
+          timestampIso = d.toISOString();
+        } else {
+          errors.push(`Invalid event timestamp: '${rawTimestamp}'.`);
+        }
+      } else {
+        errors.push("Missing mandatory ERP event field: event_timestamp is required.");
+      }
+
+      const grossValue = raw["case:Gross order value"] ?? raw.monetary_value ?? raw.amount ?? null;
+      const parsedGrossValue = grossValue !== null && grossValue !== undefined && !isNaN(Number(grossValue))
+        ? Number(grossValue)
+        : null;
+
+      const purchaseDoc = raw["case:Purchasing Document"] ? String(raw["case:Purchasing Document"]) : (raw.purchase_document_id || null);
+      const purchaseItem = raw["case:Item"] ? String(raw["case:Item"]) : (raw.purchase_item_id || null);
+      const itemType = raw["case:Item Type"] ? String(raw["case:Item Type"]) : (raw.item_type || null);
+      const spendCategory = raw["case:Spend area text"] ? String(raw["case:Spend area text"]) : (raw.spend_category || null);
+
+      const invoiceEvent = raw.invoice_event ?? (eventType.toLowerCase().includes("invoice") ? timestampIso : null);
+      const clearingEvent = raw.clearing_event ?? (eventType.toLowerCase().includes("clear") ? timestampIso : null);
+      const goodsReceiptEvent = raw.goods_receipt_event ?? (eventType.toLowerCase().includes("goods receipt") ? timestampIso : null);
+
+      const processDuration = raw.process_duration !== undefined && raw.process_duration !== null && !isNaN(Number(raw.process_duration))
+        ? Number(raw.process_duration)
+        : null;
+
+      const hasPaymentBlock = Boolean(
+        raw.has_payment_block ||
+        eventType.toLowerCase().includes("block") ||
+        eventType.toLowerCase().includes("hold")
+      );
+      const hasRework = Boolean(
+        raw.has_rework ||
+        eventType.toLowerCase().includes("change") ||
+        eventType.toLowerCase().includes("cancel") ||
+        eventType.toLowerCase().includes("reopen")
+      );
+      const hasException = Boolean(
+        raw.has_exception ||
+        hasPaymentBlock ||
+        hasRework ||
+        eventType.toLowerCase().includes("reject")
+      );
+
+      const sourceRecordId = String(raw.id || raw.event_id || `${caseId}-${idx + 1}`);
+
+      if (errors.length > 0) {
+        results.push({
+          sourceRecordIndex: idx,
+          sourceRecordId,
+          mappingVersion,
+          mappingResult: "FAILED",
+          unmappedFields: [],
+          transformationWarnings: warnings,
+          transformationErrors: errors,
+        });
+        return;
+      }
+
+      const canonical: CanonicalERPEventContract = {
+        case_id: caseId,
+        purchase_document_id: purchaseDoc,
+        purchase_item_id: purchaseItem,
+        vendor_id: vendorId,
+        company_id: companyId,
+        event_type: eventType,
+        event_timestamp: timestampIso,
+        monetary_value: parsedGrossValue,
+        item_type: itemType,
+        spend_category: spendCategory,
+        invoice_event: invoiceEvent,
+        clearing_event: clearingEvent,
+        goods_receipt_event: goodsReceiptEvent,
+        process_duration: processDuration,
+        has_payment_block: hasPaymentBlock,
+        has_rework: hasRework,
+        has_exception: hasException,
+        source_system: providerId,
+        source_record_id: sourceRecordId,
+        extracted_at: new Date().toISOString(),
+        raw_payload: raw,
+      };
+
+      const resultStatus = warnings.length > 0 ? "WARNING" : "SUCCESS";
+      results.push({
+        sourceRecordIndex: idx,
+        sourceRecordId,
+        canonicalTransactionId: canonical.case_id,
+        mappingVersion,
+        mappingResult: resultStatus,
+        canonicalRecord: canonical,
+        unmappedFields: [],
+        transformationWarnings: warnings,
+        transformationErrors: [],
+      });
+
+      canonicalEvents.push(canonical);
+    });
+
+    const successfulCount = results.filter((r) => r.mappingResult === "SUCCESS").length;
+    const warningCount = results.filter((r) => r.mappingResult === "WARNING").length;
+    const failedCount = results.filter((r) => r.mappingResult === "FAILED").length;
+
+    return {
+      totalRawRecords: rawEvents.length,
+      successfulCount,
+      warningCount,
+      failedCount,
+      canonicalEvents,
+      results,
+    };
+  }
 }
+
+export function normalizeERPEventLogBatch(
+  rawEvents: Record<string, any>[],
+  organizationId = "DEFAULT_ORG"
+): CanonicalERPEventContract[] {
+  const result = CanonicalTransformer.normalizeERPEventLogBatch(rawEvents);
+  return result.canonicalEvents.map((e) => ({
+    ...e,
+    organization_id: organizationId,
+  }));
+}
+

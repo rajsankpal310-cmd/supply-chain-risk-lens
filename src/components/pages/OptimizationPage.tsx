@@ -16,7 +16,7 @@ import { optimizationService } from "@/services/decisionServices";
 import type { OptimizationRun } from "@/types";
 import { formatINR } from "@/utils/format";
 
-export function OptimizationPage() {
+export function OptimizationPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [budget, setBudget] = useState<number>(1000000);
   const [runResult, setRunResult] = useState<OptimizationRun | null>(null);
 
@@ -40,15 +40,17 @@ export function OptimizationPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Support Allocation Optimization"
-        description="Allocate limited financial support or credit lines across connected firms to maximize risk reduction and minimize cascade contagion."
-        actions={
-          <Badge variant="outline" className="text-muted-foreground gap-1">
-            <Info className="size-3" /> Demo optimization using mock decision logic
-          </Badge>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title="Smart Budget Allocation"
+          description="Allocate limited financial support or credit lines across connected firms to maximize risk reduction and minimize cascade contagion."
+          actions={
+            <Badge variant="outline" className="text-muted-foreground gap-1">
+              <Info className="size-3" /> Decision-support model — results are indicative
+            </Badge>
+          }
+        />
+      )}
 
       {/* Budget Configuration Form */}
       <Card className="p-6">

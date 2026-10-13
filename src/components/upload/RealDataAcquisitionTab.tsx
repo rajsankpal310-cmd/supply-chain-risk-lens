@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Database,
@@ -53,9 +54,9 @@ export function RealDataAcquisitionTab({ onSwitchToConnectors }: RealDataAcquisi
   const [ingestionResult, setIngestionResult] = useState<any | null>(null);
 
   // Form State
-  const [corporateEntityName, setCorporateEntityName] = useState(user?.organizationName || "");
+  const [corporateEntityName, setCorporateEntityName] = useState((user as any)?.organizationName || "");
   const [corporateRegistrationNumber, setCorporateRegistrationNumber] = useState("");
-  const [authorizedSignatoryName, setAuthorizedSignatoryName] = useState(user?.name || "");
+  const [authorizedSignatoryName, setAuthorizedSignatoryName] = useState((user as any)?.name || user?.email || "");
   const [signatoryTitle, setSignatoryTitle] = useState("Chief Financial Officer");
   const [legalConsentReferenceId, setLegalConsentReferenceId] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -126,9 +127,7 @@ export function RealDataAcquisitionTab({ onSwitchToConnectors }: RealDataAcquisi
     onSuccess: (data: any) => {
       setIngestionResult(data);
       setUploadModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["acquisition-status"] });
-      queryClient.invalidateQueries({ queryKey: ["import-batches"] });
-      queryClient.invalidateQueries({ queryKey: ["connectors-list"] });
+      queryClient.invalidateQueries();
       toast.success("Authorized enterprise data export successfully ingested!");
     },
     onError: (err: any) => {
@@ -166,13 +165,13 @@ export function RealDataAcquisitionTab({ onSwitchToConnectors }: RealDataAcquisi
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">REAL DATA ACQUISITION</h2>
-            <Badge variant="outline" className="border-primary/40 text-primary text-xs font-mono">
-              PHASE 7 MISSION
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Data Acquisition & Onboarding</h2>
+            <Badge variant="outline" className="border-primary/40 text-primary text-xs">
+              Enterprise Ledger
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Connect or upload an <strong>AUTHORIZED</strong> real enterprise transaction source. Zero synthetic fabrication permitted.
+            Connect or upload an authorized enterprise transaction source for risk assessment and resilience mapping.
           </p>
         </div>
 

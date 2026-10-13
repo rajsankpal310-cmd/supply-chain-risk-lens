@@ -30,5 +30,26 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-'nserver/.env
-/server/.env
+# Environment variables
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.example
+
+# Local SQLite databases / test artifacts
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+server/prisma/*.db
+server/prisma/*.db-journal
+server/test-conn.*
+server/audit-db.js
+server/check-migrations.js
+
+
+# Large raw research datasets
+/server/data/acquisition/uk_dbt_prompt_payments_raw.csv
+/server/data/acquisition/bpi_challenge_2019_raw.xes

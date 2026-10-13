@@ -9,14 +9,32 @@ export class RiskService {
     const transactions = await TransactionRepository.findMany(organizationId, {}, { invoiceDate: "desc" }, 0, 10000);
     const relationships = await RelationshipRepository.findAll(organizationId);
 
-    const overall = firms.length ? Math.round(firms.reduce((s: number, f: any) => s + f.riskScore, 0) / firms.length) : 50;
+    // Empty organization check: 0 firms and 0 transactions
+    if (firms.length === 0 && transactions.length === 0) {
+      return {
+        isEmpty: true,
+        overall: null,
+        level: "NO_DATA",
+        categories: [
+          { key: "payment", label: "Payment Risk", description: "Late settlement behaviour across buyers.", score: null },
+          { key: "stress", label: "Financial Stress", description: "Working-capital pressure on SMEs.", score: null },
+          { key: "dependency", label: "Dependency Risk", description: "Concentration on key buyers or suppliers.", score: null },
+          { key: "supply", label: "Supply Chain Risk", description: "Fragility of the connected firm network.", score: null },
+          { key: "cascade", label: "Cascade Risk", description: "Probability that stress spreads to connected firms.", score: null },
+        ],
+        drivers: [],
+        trend: [],
+      };
+    }
+
+    const overall = firms.length ? Math.round(firms.reduce((s: number, f: any) => s + f.riskScore, 0) / firms.length) : 0;
 
     const delayedTxns = transactions.filter((t: any) => t.paymentDelayDays && t.paymentDelayDays > 0);
-    const avgDelayScore = delayedTxns.length ? Math.min(99, Math.round((delayedTxns.reduce((s: number, t: any) => s + (t.paymentDelayDays || 0), 0) / delayedTxns.length) * 1.5 + 25)) : 45;
+    const avgDelayScore = delayedTxns.length ? Math.min(99, Math.round((delayedTxns.reduce((s: number, t: any) => s + (t.paymentDelayDays || 0), 0) / delayedTxns.length) * 1.5 + 25)) : 0;
 
-    const avgStress = firms.length ? Math.round(firms.reduce((s: number, f: any) => s + f.financialStress, 0) / firms.length) : 50;
+    const avgStress = firms.length ? Math.round(firms.reduce((s: number, f: any) => s + f.financialStress, 0) / firms.length) : 0;
 
-    const avgDependency = relationships.length ? Math.round(relationships.reduce((s: number, r: any) => s + r.dependencyLevel, 0) / relationships.length) : 40;
+    const avgDependency = relationships.length ? Math.round(relationships.reduce((s: number, r: any) => s + r.dependencyLevel, 0) / relationships.length) : 0;
 
     const criticalRels = relationships.filter((r: any) => r.criticality === "HIGH" || r.criticality === "CRITICAL").length;
     const supplyChainScore = Math.min(99, Math.round(avgDependency * 0.7 + (criticalRels / Math.max(1, relationships.length)) * 40));
@@ -28,6 +46,7 @@ export class RiskService {
     const totalOutstanding = transactions.reduce((s: number, t: any) => s + t.outstandingAmount, 0);
 
     return {
+      isEmpty: false,
       overall,
       level,
       categories: [

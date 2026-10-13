@@ -175,4 +175,34 @@ export class ProbabilityCalibrator {
     const logit = a * rawScore + b;
     return 1.0 / (1.0 + Math.exp(-logit));
   }
+
+  /**
+   * Evaluates calibration metrics directly from empirical probabilities and actual outcomes.
+   */
+  public static evaluateCalibration(
+    actuals: number[],
+    probabilities: number[],
+    numBins = 10
+  ): CalibrationReport {
+    const curve = this.computeCalibrationCurve(actuals, probabilities, numBins);
+    return {
+      status: curve.ece < 0.15 ? "CALIBRATED" : "UNCALIBRATED",
+      method: "NONE",
+      expectedCalibrationError: curve.ece,
+      maxCalibrationError: curve.mce,
+      bins: curve.bins,
+      sampleSize: actuals.length,
+      diagnostics: `Calibration evaluated on ${actuals.length} samples. ECE: ${(curve.ece * 100).toFixed(1)}%.`,
+    };
+  }
+
+  /**
+   * Calibrates a raw score given a CalibrationReport.
+   */
+  public static calibrateRawScore(rawScore: number, report: CalibrationReport): number {
+    if (report && report.plattParameters) {
+      return this.applyPlattScaling(rawScore, report.plattParameters.a, report.plattParameters.b);
+    }
+    return 1.0 / (1.0 + Math.exp(-rawScore));
+  }
 }

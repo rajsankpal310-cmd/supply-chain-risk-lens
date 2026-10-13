@@ -344,6 +344,7 @@ export interface DashboardSummary {
     totalFirmsCount: number;
     resilienceIndex: number;
   };
+  mlIntelligence?: any;
 }
 
 export interface TopFirmRow {

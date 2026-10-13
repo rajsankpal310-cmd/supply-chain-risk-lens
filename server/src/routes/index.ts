@@ -19,9 +19,11 @@ import referenceRoutes from "./reference.routes";
 import governanceRoutes from "./governance.routes";
 import connectorRoutes from "./connector.routes";
 import mlRoutes from "./ml.routes";
+import healthRoutes from "./health.routes";
 
 const apiRouter = Router();
 
+apiRouter.use("/health", healthRoutes);
 apiRouter.use("/auth", authRoutes);
 apiRouter.use("/dashboard", dashboardRoutes);
 apiRouter.use("/transactions", transactionRoutes);

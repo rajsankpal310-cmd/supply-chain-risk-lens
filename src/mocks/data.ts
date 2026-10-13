@@ -1,5 +1,5 @@
-// Deterministic demo dataset (clearly labelled as DEMO DATA in the UI).
-// Replaced by real backend responses when VITE_USE_MOCK_API=false.
+// Fallback dataset used when VITE_USE_MOCK_API=true (offline/development only).
+// When VITE_USE_MOCK_API=false, all data is served from the real backend.
 import type {
   Alert,
   Deadlock,

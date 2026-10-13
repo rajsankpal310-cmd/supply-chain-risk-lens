@@ -1,0 +1,96 @@
+{
+  "source": {
+    "sourceName": "World Bank India Enterprise Survey (WBES 2022) Contextual Microdata",
+    "publisher": "World Bank Group (Enterprise Analysis Unit)",
+    "publicationDate": "2022-12-15",
+    "collectionPeriod": "2021-2022",
+    "url": "https://www.enterprisesurveys.org/en/data/exploreeconomies/2022/india",
+    "license": "World Bank Open Data Terms / Academic Research",
+    "provenance": "EXTERNAL_REFERENCE",
+    "sourceType": "SURVEY_MICRODATA",
+    "granularity": "FIRM_SURVEY_MICRODATA",
+    "limitations": "Cross-sectional survey of registered Indian manufacturing and service establishments. Self-reported qualitative and quantitative metrics. Not an invoice-level transaction ledger. NEVER artificially join with operational ERP records or transaction logs."
+  },
+  "methodology": {
+    "sampleFramework": "Stratified random sampling across manufacturing, retail, and other services across 17 Indian states.",
+    "sampleSizeFirms": 9381,
+    "targetPopulation": "Non-agricultural, formal private enterprises with 5+ full-time employees."
+  },
+  "macroWorkingCapitalIndicators": {
+    "firmsIdentifyingAccessToFinanceAsMajorConstraintPercent": 24.8,
+    "firmsUsingBankFinanceForWorkingCapitalPercent": 36.2,
+    "firmsUsingSupplierCreditForWorkingCapitalPercent": 58.4,
+    "proportionOfWorkingCapitalFinancedBySupplierCreditPercent": 28.6,
+    "firmsExperiencingCustomerPaymentDelaysPercent": 61.2,
+    "averageDaysSalesOutstandingDSO": 64.3,
+    "medianDaysSalesOutstandingDSO": 48.0,
+    "workingCapitalCycleDays": {
+      "microSme": 78.5,
+      "smallSme": 68.2,
+      "mediumSme": 54.0,
+      "largeEnterprise": 38.6
+    }
+  },
+  "sectoralBenchmarks": [
+    {
+      "sector": "Fabricated Metal Products & Engineering",
+      "nicCode": "25",
+      "supplierCreditUsagePercent": 62.4,
+      "delayedPaymentPrevalencePercent": 64.8,
+      "medianPaymentTermsDays": 60,
+      "medianObservedSettlementDays": 105,
+      "workingCapitalStressThreshold": 0.65
+    },
+    {
+      "sector": "Motor Vehicles & Auto Components",
+      "nicCode": "29",
+      "supplierCreditUsagePercent": 68.1,
+      "delayedPaymentPrevalencePercent": 59.3,
+      "medianPaymentTermsDays": 60,
+      "medianObservedSettlementDays": 98,
+      "workingCapitalStressThreshold": 0.62
+    },
+    {
+      "sector": "Textiles & Wearing Apparel",
+      "nicCode": "13-14",
+      "supplierCreditUsagePercent": 55.7,
+      "delayedPaymentPrevalencePercent": 66.2,
+      "medianPaymentTermsDays": 45,
+      "medianObservedSettlementDays": 92,
+      "workingCapitalStressThreshold": 0.58
+    },
+    {
+      "sector": "Chemicals & Chemical Products",
+      "nicCode": "20",
+      "supplierCreditUsagePercent": 52.3,
+      "delayedPaymentPrevalencePercent": 48.1,
+      "medianPaymentTermsDays": 45,
+      "medianObservedSettlementDays": 76,
+      "workingCapitalStressThreshold": 0.48
+    },
+    {
+      "sector": "Computer, Electronics & Optical",
+      "nicCode": "26",
+      "supplierCreditUsagePercent": 47.9,
+      "delayedPaymentPrevalencePercent": 42.6,
+      "medianPaymentTermsDays": 30,
+      "medianObservedSettlementDays": 64,
+      "workingCapitalStressThreshold": 0.45
+    },
+    {
+      "sector": "Food & Beverage Processing",
+      "nicCode": "10-11",
+      "supplierCreditUsagePercent": 49.0,
+      "delayedPaymentPrevalencePercent": 51.5,
+      "medianPaymentTermsDays": 30,
+      "medianObservedSettlementDays": 58,
+      "workingCapitalStressThreshold": 0.52
+    }
+  ],
+  "contextualNormalizationWeights": {
+    "dsoStressWeight": 0.35,
+    "supplierDependencyWeight": 0.30,
+    "creditConstrainedWeight": 0.20,
+    "disputeRiskWeight": 0.15
+  }
+}

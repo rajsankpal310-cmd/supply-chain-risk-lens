@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SimulationHistoryPage } from "@/components/pages/SimulationHistoryPage";
+import { SimulatorPage } from "@/components/pages/SimulatorPage";
 
 export const Route = createFileRoute("/app/simulations/")({
-  component: SimulationHistoryPage,
+  component: () => <SimulatorPage initialTab="history" />,
 });

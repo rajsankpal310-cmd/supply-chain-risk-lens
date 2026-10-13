@@ -6,19 +6,35 @@ export class DeadlockService {
   static async getDeadlocks(organizationId: string) {
     await this.detectAndPersistDeadlocks(organizationId);
     const deadlocks = await DeadlockRepository.findAll(organizationId);
-    return deadlocks.map((d: any) => ({
-      ...d,
-      chain: typeof d.chain === "string" ? JSON.parse(d.chain) : d.chain,
-      detectedAt: d.detectedAt.toISOString().slice(0, 10),
-    }));
+    return deadlocks.map((d: any) => {
+      const parsed = typeof d.chain === "string" ? JSON.parse(d.chain) : d.chain;
+      const chainDetails = parsed?.chainDetails || (Array.isArray(parsed) ? parsed : []);
+      return {
+        ...d,
+        chain: chainDetails,
+        rootRiskNode: parsed?.rootRiskNode || { id: d.rootFirmId, name: d.rootFirmName, riskScore: d.deadlockRisk, riskLevel: d.severity },
+        bottleneckEntity: parsed?.bottleneckEntity,
+        connectedNodes: parsed?.connectedNodes || chainDetails,
+        possibleCascade: parsed?.possibleCascade,
+        deadlockSeverity: parsed?.deadlockSeverity || d.severity,
+        detectedAt: d.detectedAt.toISOString().slice(0, 10),
+      };
+    });
   }
 
   static async getDeadlockById(organizationId: string, id: string) {
     const d = await DeadlockRepository.findById(id, organizationId);
     if (!d) throw { status: 404, message: "This resource is not available in your organization." };
+    const parsed = typeof d.chain === "string" ? JSON.parse(d.chain) : d.chain;
+    const chainDetails = parsed?.chainDetails || (Array.isArray(parsed) ? parsed : []);
     return {
       ...d,
-      chain: typeof d.chain === "string" ? JSON.parse(d.chain) : d.chain,
+      chain: chainDetails,
+      rootRiskNode: parsed?.rootRiskNode || { id: d.rootFirmId, name: d.rootFirmName, riskScore: d.deadlockRisk, riskLevel: d.severity },
+      bottleneckEntity: parsed?.bottleneckEntity,
+      connectedNodes: parsed?.connectedNodes || chainDetails,
+      possibleCascade: parsed?.possibleCascade,
+      deadlockSeverity: parsed?.deadlockSeverity || d.severity,
       detectedAt: d.detectedAt.toISOString().slice(0, 10),
     };
   }
@@ -98,42 +114,66 @@ export class DeadlockService {
       const rootFirm = firms.find((f) => f.id === rootId);
       if (!rootFirm) continue;
 
+      let maxStressFirm = rootFirm;
       const chainDetails = cycle.map((fId) => {
         const firmObj = firms.find((f) => f.id === fId);
+        if (firmObj && firmObj.financialStress > (maxStressFirm?.financialStress || 0)) {
+          maxStressFirm = firmObj;
+        }
         return {
           firmId: fId,
           firmName: firmObj ? firmObj.name : fId,
           owesAmount: firmObj ? Math.round(firmObj.outstandingAmount * 0.4) : 500000,
           stress: firmObj ? firmObj.financialStress : 60,
+          riskScore: firmObj ? firmObj.riskScore : 50,
+          riskLevel: firmObj ? firmObj.riskLevel : "MEDIUM",
+          isHighRisk: firmObj ? firmObj.riskScore >= 62 : false,
         };
       });
 
       const totalExposure = chainDetails.reduce((s, c) => s + c.owesAmount, 0);
       const deadlockId = `DLK-${organizationId}-${String(deadlockIndex++).padStart(3, "0")}`;
       const deadlockRisk = Math.min(99, Math.round(rootFirm.riskScore * 0.7 + cycle.length * 8));
+      const severity = deadlockRisk >= 80 ? "CRITICAL" : deadlockRisk >= 62 ? "HIGH" : deadlockRisk >= 40 ? "MEDIUM" : "LOW";
+
+      const dbPayload = {
+        rootFirmId: rootFirm.id,
+        rootFirmName: rootFirm.name,
+        severity,
+        deadlockRisk,
+        chain: JSON.stringify({
+          chainDetails,
+          rootRiskNode: {
+            id: rootFirm.id,
+            name: rootFirm.name,
+            riskScore: rootFirm.riskScore,
+            riskLevel: rootFirm.riskLevel,
+          },
+          bottleneckEntity: {
+            id: maxStressFirm.id,
+            name: maxStressFirm.name,
+            financialStress: maxStressFirm.financialStress,
+          },
+          connectedNodes: chainDetails,
+          exposure: totalExposure,
+          possibleCascade: {
+            cascadeRisk: Math.min(99, Math.round(deadlockRisk * 0.85)),
+            affectedEntitiesCount: cycle.length,
+            estimatedContagionLoss: Math.round(totalExposure * 1.35),
+          },
+          deadlockSeverity: severity,
+        }),
+        totalExposure,
+        estimatedImpact: Math.round(totalExposure * 1.35),
+        organizationId,
+      };
 
       await DeadlockRepository.upsert(
         deadlockId,
-        {
-          rootFirmId: rootFirm.id,
-          rootFirmName: rootFirm.name,
-          deadlockRisk,
-          severity: deadlockRisk >= 80 ? "CRITICAL" : deadlockRisk >= 62 ? "HIGH" : deadlockRisk >= 40 ? "MEDIUM" : "LOW",
-          chain: JSON.stringify(chainDetails),
-          totalExposure,
-          estimatedImpact: Math.round(totalExposure * 1.35),
-          organizationId,
-        },
+        dbPayload,
         {
           id: deadlockId,
-          organizationId,
-          rootFirmId: rootFirm.id,
-          rootFirmName: rootFirm.name,
-          severity: deadlockRisk >= 80 ? "CRITICAL" : deadlockRisk >= 62 ? "HIGH" : deadlockRisk >= 40 ? "MEDIUM" : "LOW",
-          deadlockRisk,
-          chain: JSON.stringify(chainDetails),
-          totalExposure,
-          estimatedImpact: Math.round(totalExposure * 1.35),
+          ...dbPayload,
           status: "OPEN",
           resolved: false,
         },

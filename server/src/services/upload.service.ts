@@ -3,12 +3,12 @@ import { PipelineOrchestrator } from "../pipeline/pipelineOrchestrator";
 import { ProvenanceMetadata } from "../pipeline/sourceClassifier";
 
 export class UploadService {
-  static inspect(headers: string[], rows: Record<string, any>[]) {
-    return PipelineOrchestrator.inspect(headers, rows);
+  static inspect(headers: string[], rows: Record<string, any>[], userOverrides: Record<string, string> = {}) {
+    return PipelineOrchestrator.inspect(headers, rows, userOverrides);
   }
 
-  static inspectSchema(headers: string[], rows: Record<string, any>[]) {
-    return PipelineOrchestrator.inspect(headers, rows);
+  static inspectSchema(headers: string[], rows: Record<string, any>[], userOverrides: Record<string, string> = {}) {
+    return PipelineOrchestrator.inspect(headers, rows, userOverrides);
   }
 
   static async validate(

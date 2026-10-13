@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Activity,
@@ -35,6 +36,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { DashboardSummary, TopFirmRow, User } from "@/types";
 import { downloadFile, formatDate, formatINR, toCsv } from "@/utils/format";
+import { MlIntelligenceDashboardPanel } from "@/components/dashboard/MlIntelligenceDashboardPanel";
+import { CollegeLaunchMlPanel } from "@/components/dashboard/CollegeLaunchMlPanel";
 
 export function AnalystDashboard({
   data,
@@ -48,6 +51,7 @@ export function AnalystDashboard({
   isFetching: boolean;
 }) {
   const navigate = useNavigate();
+  const [showAdvancedMl, setShowAdvancedMl] = useState(false);
   const analytical = data.analyticalSummary;
 
   const firmColumns: Column<TopFirmRow>[] = [
@@ -66,11 +70,39 @@ export function AnalystDashboard({
     { key: "risk", header: "Risk", align: "right", render: (r) => <RiskBadge level={r.riskLevel} score={r.riskScore} /> },
   ];
 
+  const isDemo = user?.organizationId === "ORG-001" || user?.email?.includes("demo");
+  const isEmptySme = data.executiveSummary?.totalFirmsCount === 0;
+
+  if (isEmptySme) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Financial Risk Analytics"
+          description="Payment delay analysis, cross-firm dependency mapping, deadlock detection and stress scenario testing."
+        />
+
+        <Card className="p-12 text-center max-w-2xl mx-auto space-y-4 border-dashed border-border/80">
+          <div className="grid size-14 place-items-center rounded-full bg-primary/10 text-primary mx-auto">
+            <Activity className="size-7" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Waiting for Organization Data</h3>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-md mx-auto leading-relaxed">
+              No counterparty ledgers have been imported for this organization yet.
+              Ask your SME Admin to upload transaction data to unlock payment delay analysis,
+              supply chain contagion simulations, and predictive risk scoring.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Risk & Contagion Analytics Workbench"
-        description="Deep financial contagion modeling, cross-firm dependency mapping, deadlock detection and stress distribution."
+        title="Financial Risk Analytics"
+        description="Payment delay analysis, cross-firm dependency mapping, deadlock detection and stress scenario testing."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={onRefresh} disabled={isFetching}>
@@ -96,6 +128,24 @@ export function AnalystDashboard({
           </div>
         }
       />
+
+      {/* Demo Mode Notice */}
+      {isDemo && (
+        <div className="rounded-xl border border-purple-500/35 bg-purple-500/5 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2.5">
+            <Badge variant="outline" className="border-purple-500/50 bg-purple-500/15 text-purple-700 dark:text-purple-300 font-semibold text-[10px]">
+              DEMO ORGANIZATION
+            </Badge>
+            <span className="text-muted-foreground">
+              Viewing <strong className="text-foreground">Apex Manufacturing Consortium</strong> with verified presentation sample data. Not real SME corporate financials.
+            </span>
+          </div>
+          <Badge variant="secondary" className="text-[10px] self-start sm:self-auto font-mono">
+            Demo Mode • Sample Data
+          </Badge>
+        </div>
+      )}
+ 
 
       {/* Analyst Modeling Action Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -208,8 +258,8 @@ export function AnalystDashboard({
                 <Activity className="size-4" />
               </div>
               <div>
-                <h4 className="font-semibold text-sm text-foreground">Cascade Simulation Registry</h4>
-                <p className="text-xs text-muted-foreground">Most recent what-if shock scenario execution</p>
+                <h4 className="font-semibold text-sm text-foreground">Recent Simulations</h4>
+                <p className="text-xs text-muted-foreground">Most recent scenario execution</p>
               </div>
             </div>
             <Badge variant="secondary" className="font-mono text-xs">
@@ -298,6 +348,34 @@ export function AnalystDashboard({
           <DataTable columns={firmColumns} rows={data.topRiskySuppliers} rowKey={(r) => r.firmId} />
         </div>
       </section>
+
+      {/* Advanced Secondary Area: ML Calibration & Registry (Constraint 7) */}
+      <Card className="p-4 border-dashed border-border/80 bg-muted/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              Advanced ML Diagnostics & Calibration
+            </h4>
+            <p className="text-[11px] text-muted-foreground">
+              Secondary technical access: Inspect statistical model weights, ROC metrics, and governance registers.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAdvancedMl(!showAdvancedMl)}
+            className="text-xs shrink-0"
+          >
+            {showAdvancedMl ? "Hide Advanced ML Models" : "Show Advanced ML Models"}
+          </Button>
+        </div>
+        {showAdvancedMl && (
+          <div className="mt-4 space-y-4 pt-4 border-t border-border/70">
+            <CollegeLaunchMlPanel />
+            {data.mlIntelligence && <MlIntelligenceDashboardPanel mlIntelligence={data.mlIntelligence} />}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

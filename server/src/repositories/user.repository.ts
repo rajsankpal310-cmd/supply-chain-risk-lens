@@ -35,6 +35,29 @@ export class UserRepository {
     });
   }
 
+  static async findByOrganization(organizationId: string) {
+    return prisma.user.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        companyName: true,
+        role: true,
+        avatarInitials: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  static async deleteByIdAndOrg(id: string, organizationId: string) {
+    return prisma.user.deleteMany({
+      where: { id, organizationId },
+    });
+  }
+
   static async count() {
     return prisma.user.count();
   }

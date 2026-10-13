@@ -108,7 +108,7 @@ export function EnterpriseConnectorsTab() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Architecture Mission Banner */}
+      {/* 1. Primary Header Banner */}
       <Card className="border-blue-500/40 bg-gradient-to-r from-blue-500/10 via-blue-500/5 to-transparent p-5 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -117,15 +117,15 @@ export function EnterpriseConnectorsTab() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                  Primary Data Access Layer
+                <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                  Data Connections
                 </span>
-                <Badge variant="outline" className="text-[10px] font-mono border-blue-500/50 bg-blue-500/20 text-blue-700 dark:text-blue-300">
-                  PHASE 3.9 READY
+                <Badge variant="outline" className="text-[10px] border-blue-500/50 bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                  Active
                 </Badge>
               </div>
-              <h2 className="text-sm font-semibold text-foreground mt-0.5">
-                Enterprise Data Source Ingestion & Provider-Agnostic Connectors
+              <h2 className="text-base font-semibold text-foreground mt-0.5">
+                Accounting & ERP Connections
               </h2>
             </div>
           </div>
@@ -137,14 +137,13 @@ export function EnterpriseConnectorsTab() {
             className="text-xs gap-1.5 self-start sm:self-auto"
           >
             <RefreshCw className={connectorsQuery.isFetching ? "size-3.5 animate-spin" : "size-3.5"} />
-            Refresh Connectors
+            Check Connection Status
           </Button>
         </div>
 
         <div className="pt-2 border-t border-blue-500/20 text-xs text-muted-foreground leading-relaxed">
-          NEXUS-CFR is equipped with a provider-agnostic enterprise connector layer. Corporate transaction ledgers flow from
-          enterprise accounting, ERP, or regulatory TReDS factoring gateways into our canonical schema. In accordance with data truth
-          principles, connectors without live authorized enterprise credentials remain honestly marked as <strong className="text-foreground">NOT CONNECTED</strong>.
+          Connect your accounting or ERP system to automatically bring transaction data into NEXUS-CFR.
+          Data is verified and kept isolated to your organization. Sources without configured credentials remain safely marked as <strong className="text-foreground">Not Connected</strong>.
         </div>
       </Card>
 
@@ -153,49 +152,66 @@ export function EnterpriseConnectorsTab() {
         {connectorsQuery.isLoading ? (
           <Card className="col-span-full p-12 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-3">
             <Loader2 className="size-6 animate-spin text-primary" />
-            <span>Discovering enterprise connector catalog and tenant states...</span>
+            <span>Checking available accounting & ERP connections...</span>
           </Card>
         ) : (
           connectors.map((c) => {
             const isConnected = c.status === "CONNECTED";
+            const displayStatus = isConnected
+              ? "Connected"
+              : c.status === "CONFIGURED"
+              ? "Needs Setup"
+              : c.status === "ERROR"
+              ? "Unavailable"
+              : "Not Connected";
+
+            const classificationLabel =
+              c.provenanceClassification === "REAL_OBSERVED_ENTERPRISE"
+                ? "Verified Company Data"
+                : c.provenanceClassification === "ARCHITECTURAL_BENCHMARK"
+                ? "Reference Dataset"
+                : c.provenanceClassification || "Standard Source";
+
             return (
               <Card key={c.id} className="p-4 space-y-3.5 flex flex-col justify-between border-border/80">
                 <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                         <Server className="size-3.5 text-primary" />
                         {c.name}
                       </h3>
-                      <span className="text-[10px] font-mono text-muted-foreground block mt-0.5">
-                        Auth: {c.authType}
+                      <span className="text-[11px] text-muted-foreground block mt-0.5">
+                        {c.authType === "OAUTH2" ? "OAuth Integration" : c.authType === "API_KEY" ? "API Key Access" : "Direct Export / Upload"}
                       </span>
                     </div>
                     <Badge
                       variant="outline"
                       className={
                         isConnected
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] font-mono gap-1"
-                          : "bg-muted text-muted-foreground border-border/60 text-[10px] font-mono gap-1"
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] gap-1 font-medium"
+                          : displayStatus === "Needs Setup"
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/30 text-[10px] gap-1 font-medium"
+                          : "bg-muted text-muted-foreground border-border/60 text-[10px] gap-1 font-medium"
                       }
                     >
                       {isConnected ? <Link2 className="size-3" /> : <Link2Off className="size-3" />}
-                      {c.status.replace("_", " ")}
+                      {displayStatus}
                     </Badge>
                   </div>
 
-                  <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
+                  <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
                     {c.notes}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 text-[10px] pt-2 border-t border-border/60">
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/60">
                     <div>
-                      <span className="text-muted-foreground uppercase font-medium block">Classification</span>
-                      <span className="font-mono text-foreground">{c.provenanceClassification}</span>
+                      <span className="text-muted-foreground text-[10px] uppercase font-medium block">Data Source</span>
+                      <span className="text-foreground text-[11px] font-medium">{classificationLabel}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground uppercase font-medium block">Records Synced</span>
-                      <span className="font-mono font-semibold text-foreground">{c.recordsImported || 0} txns</span>
+                      <span className="text-muted-foreground text-[10px] uppercase font-medium block">Records Synced</span>
+                      <span className="font-semibold text-foreground text-[11px]">{c.recordsImported || 0} transactions</span>
                     </div>
                   </div>
                 </div>
@@ -204,17 +220,17 @@ export function EnterpriseConnectorsTab() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs h-7 flex-1 gap-1"
+                    className="text-xs h-8 flex-1 gap-1"
                     onClick={() => handleOpenConfig(c)}
                   >
                     <Plug className="size-3" />
-                    Configure / Test
+                    Configure & Connect
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-xs h-7 px-2"
-                    title="View Canonical Schema Mapping"
+                    className="text-xs h-8 px-2"
+                    title="View Technical Data Mapping"
                     onClick={() => handleViewMapping(c.type)}
                   >
                     <FileCode className="size-3.5 text-muted-foreground" />
@@ -226,45 +242,48 @@ export function EnterpriseConnectorsTab() {
         )}
       </div>
 
-      {/* 3. Canonical Pipeline Flow Card */}
+      {/* 3. Security & Verification Overview (Progressive Disclosure) */}
       <Card className="p-5 space-y-3 bg-muted/20 border-border/80">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <ShieldCheck className="size-4 text-primary" />
-          Enterprise Ingestion Security & Isolation Pipeline
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <ShieldCheck className="size-4 text-primary" />
+            Data Protection & Quality Verification
+          </h3>
+          <Badge variant="outline" className="text-[10px]">Enterprise Secure</Badge>
+        </div>
         <p className="text-xs text-muted-foreground">
-          How enterprise data transitions from external ERPs into the tenant-isolated analytical corpus:
+          How data from external accounting software is verified and protected before risk analysis:
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1 text-xs">
           <div className="rounded-lg border border-border/70 bg-background/80 p-2.5 space-y-1">
-            <span className="font-bold text-primary font-mono text-[10px]">1. AUTH & INGEST</span>
+            <span className="font-bold text-primary text-[11px]">1. Secure Access</span>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              OAuth2 or TLS mutual auth. Tenant credential isolation with secret masking.
+              OAuth2 or encrypted credentials with tenant-isolated storage and masked secrets.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-background/80 p-2.5 space-y-1">
-            <span className="font-bold text-primary font-mono text-[10px]">2. CANONICAL MAP</span>
+            <span className="font-bold text-primary text-[11px]">2. Standard Mapping</span>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              Maps provider fields into immutable CanonicalInvoiceContract without schema mutation.
+              Automatically maps invoices, payments, and dates without altering your original files.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-background/80 p-2.5 space-y-1">
-            <span className="font-bold text-primary font-mono text-[10px]">3. QUALITY GATE</span>
+            <span className="font-bold text-primary text-[11px]">3. Quality Check</span>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              Deterministic validation: positive amounts, valid dates, duplicate detection.
+              Validates amounts, checks for duplicates, and flags incomplete transaction dates.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-background/80 p-2.5 space-y-1">
-            <span className="font-bold text-primary font-mono text-[10px]">4. PROVENANCE</span>
+            <span className="font-bold text-primary text-[11px]">4. Audit Trail</span>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              Creates permanent ImportBatch recording SHA-256 hash, actor, provider, and source timestamp.
+              Records permanent import records, user attribution, and source verification timestamps.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 bg-background/80 p-2.5 space-y-1">
-            <span className="font-bold text-primary font-mono text-[10px]">5. ML READINESS</span>
+            <span className="font-bold text-primary text-[11px]">5. Risk Analysis</span>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              Re-evaluates N &gt;= 1,000 threshold and out-of-time temporal windows to unlock ML Gate.
+              Data is immediately available for portfolio risk scoring and delay predictions.
             </p>
           </div>
         </div>

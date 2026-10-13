@@ -9,9 +9,10 @@
  * CORE AXIOM: ML REMAIN LOCKED UNTIL AUTHORIZED PRIMARY ENTERPRISE DATA ARRIVES.
  */
 
-import { TARGET_REGISTRY, TargetDefinition } from "../targets/targetRegistry";
+import { TARGET_REGISTRY, TargetDefinition, checkTargetSourceCompatibility } from "../targets/targetRegistry";
 
 export type GateStatus = "PASS" | "WARNING" | "BLOCKED";
+export type EvidenceGateDecision = "READY" | "READY_WITH_LIMITATIONS" | "BLOCKED";
 
 export interface ReadinessCheckResult {
   checkId: string;
@@ -28,6 +29,7 @@ export interface MLReadinessReport {
   organizationId: string;
   evaluatedAt: string;
   overallStatus: "LOCKED" | "CONDITIONAL" | "READY";
+  evidenceGateStatus: EvidenceGateDecision;
   summary: string;
   checks: ReadinessCheckResult[];
   blockerCount: number;
@@ -50,7 +52,13 @@ export interface MLReadinessReport {
 
 export interface DatasetAssessmentInput {
   organizationId: string;
-  sourceClassification: "SIMULATED_BENCHMARK" | "SYNTHETIC" | "EXTERNAL_REFERENCE" | "REAL_OBSERVED_ENTERPRISE";
+  sourceClassification:
+    | "SIMULATED_BENCHMARK"
+    | "SYNTHETIC"
+    | "EXTERNAL_REFERENCE"
+    | "REAL_OBSERVED_ENTERPRISE"
+    | "REAL_OBSERVED_PUBLIC_ENTERPRISE_EVENT_LOG";
+  sourceType?: "INVOICE_LIFECYCLE_DATA" | "ERP_EVENT_LOG_DATA" | "SURVEY_MICRODATA" | "ADMINISTRATIVE_REFERENCE_DATA";
   isEnterpriseAuthorized: boolean;
   hasActiveLegalConsent: boolean;
   totalTransactions: number;
@@ -76,20 +84,24 @@ export class MLReadinessGate {
   public static evaluateDataset(input: DatasetAssessmentInput): MLReadinessReport {
     const checks: ReadinessCheckResult[] = [];
     const targetDef: TargetDefinition = TARGET_REGISTRY[input.targetId || "PAYMENT_DELAY_RISK"] || TARGET_REGISTRY.PAYMENT_DELAY_RISK;
+    const effectiveSourceType = input.sourceType || (input.sourceClassification === "REAL_OBSERVED_PUBLIC_ENTERPRISE_EVENT_LOG" ? "ERP_EVENT_LOG_DATA" : "INVOICE_LIFECYCLE_DATA");
 
     // 1. Provenance Validity
-    const isRealData = input.sourceClassification === "REAL_OBSERVED_ENTERPRISE";
+    const isRealData =
+      input.sourceClassification === "REAL_OBSERVED_ENTERPRISE" ||
+      input.sourceClassification === "REAL_OBSERVED_PUBLIC_ENTERPRISE_EVENT_LOG";
+
     checks.push({
       checkId: "CHECK_01_PROVENANCE_VALIDITY",
       name: "Data Provenance Classification",
       category: "PROVENANCE_AND_AUTH",
       status: isRealData ? "PASS" : "BLOCKED",
       observedValue: input.sourceClassification,
-      thresholdValue: "REAL_OBSERVED_ENTERPRISE",
+      thresholdValue: "REAL_OBSERVED_ENTERPRISE / REAL_OBSERVED_PUBLIC_ENTERPRISE_EVENT_LOG",
       details: isRealData
-        ? "Dataset originates from an authorized primary enterprise ledger connector or signed export."
+        ? "Dataset originates from an authorized primary enterprise ledger connector or verified public enterprise event log (BPI Challenge 2019)."
         : `Current dataset classification is '${input.sourceClassification}'. Simulated/synthetic data cannot be promoted to real production ML.`,
-      remediation: "Connect an authorized ERP connector (Tally, Zoho, SAP, QuickBooks) or upload a cryptographically attested primary export.",
+      remediation: "Connect an authorized ERP connector (Tally, Zoho, SAP, QuickBooks) or activate verified public enterprise event log.",
     });
 
     // 2. Authorization & Consent
@@ -107,23 +119,29 @@ export class MLReadinessGate {
     });
 
     // 3. Schema Validity
-    const schemaValid = input.missingAmountsCount === 0 && input.missingDueDatesCount === 0;
+    const isErpEvent = effectiveSourceType === "ERP_EVENT_LOG_DATA";
+    const schemaValid = isErpEvent ? input.missingAmountsCount === 0 : (input.missingAmountsCount === 0 && input.missingDueDatesCount === 0);
     checks.push({
       checkId: "CHECK_03_SCHEMA_VALIDITY",
-      name: "Canonical Invoice Contract Schema Adherence",
+      name: isErpEvent ? "Canonical ERP Event Log Schema Adherence" : "Canonical Invoice Contract Schema Adherence",
       category: "DATA_COMPLETENESS",
       status: schemaValid ? "PASS" : "BLOCKED",
       observedValue: schemaValid ? "VALID" : "INVALID_FIELDS",
       thresholdValue: "VALID",
       details: schemaValid
-        ? "All ingested vouchers conform to CanonicalInvoiceContract with verified primitive types."
+        ? isErpEvent
+          ? "All ingested ERP events conform to CanonicalERPEventContract with verified timestamps and identifiers."
+          : "All ingested vouchers conform to CanonicalInvoiceContract with verified primitive types."
         : `Schema errors detected: ${input.missingAmountsCount} missing amounts, ${input.missingDueDatesCount} missing due dates.`,
-      remediation: "Enforce CanonicalInvoiceContract normalization during connector ingestion.",
+      remediation: isErpEvent
+        ? "Enforce CanonicalERPEventContract normalization."
+        : "Enforce CanonicalInvoiceContract normalization during connector ingestion.",
     });
 
     // 4. Required Field Completeness
+    const missingCount = isErpEvent ? input.missingAmountsCount : (input.missingAmountsCount + input.missingDueDatesCount);
     const completenessRate = input.totalTransactions > 0
-      ? ((input.totalTransactions - (input.missingAmountsCount + input.missingDueDatesCount)) / input.totalTransactions) * 100
+      ? ((input.totalTransactions - missingCount) / input.totalTransactions) * 100
       : 0;
     checks.push({
       checkId: "CHECK_04_FIELD_COMPLETENESS",
@@ -133,7 +151,7 @@ export class MLReadinessGate {
       observedValue: `${completenessRate.toFixed(1)}%`,
       thresholdValue: ">= 99.0%",
       details: `Critical fields completeness is ${completenessRate.toFixed(1)}%.`,
-      remediation: "Filter or repair vouchers with null invoiceDate, dueDate, or counterparty IDs.",
+      remediation: "Filter or repair vouchers with null timestamps, identifiers, or counterparty IDs.",
     });
 
     // 5. Duplicate Control
@@ -154,7 +172,7 @@ export class MLReadinessGate {
       checkId: "CHECK_06_SAMPLE_SCALE",
       name: "Closed Lifecycle Sample Observations",
       category: "TEMPORAL_AND_SCALE",
-      status: input.completedTransactions >= minObs ? "PASS" : input.completedTransactions >= minObs * 0.5 ? "WARNING" : "BLOCKED",
+      status: input.completedTransactions >= minObs ? "PASS" : "BLOCKED",
       observedValue: input.completedTransactions,
       thresholdValue: `>= ${minObs}`,
       details: `Observed ${input.completedTransactions} settled transactions. Minimum requirement is ${minObs}.`,
@@ -167,7 +185,7 @@ export class MLReadinessGate {
       checkId: "CHECK_07_BUYER_DIVERSITY",
       name: "Counterparty Buyer Diversity",
       category: "TEMPORAL_AND_SCALE",
-      status: input.uniqueBuyers >= minBuyers ? "PASS" : input.uniqueBuyers >= minBuyers * 0.5 ? "WARNING" : "BLOCKED",
+      status: input.uniqueBuyers >= minBuyers ? "PASS" : "BLOCKED",
       observedValue: input.uniqueBuyers,
       thresholdValue: `>= ${minBuyers}`,
       details: `Observed ${input.uniqueBuyers} unique buyers. Requires >= ${minBuyers} to prevent severe entity overfitting.`,
@@ -194,24 +212,30 @@ export class MLReadinessGate {
     const minMonths = targetDef.minimumDataRequirements.minimumLongitudinalMonths;
     checks.push({
       checkId: "CHECK_09_TEMPORAL_COVERAGE",
-      name: "Longitudinal Temporal Coverage",
+      name: "Longitudinal Temporal Coverage (Temporal Span)",
       category: "TEMPORAL_AND_SCALE",
-      status: monthsSpan >= minMonths ? "PASS" : monthsSpan >= minMonths * 0.7 ? "WARNING" : "BLOCKED",
+      status: monthsSpan >= minMonths ? "PASS" : "BLOCKED",
       observedValue: `${monthsSpan} months`,
       thresholdValue: `>= ${minMonths} months`,
-      details: `Data spans ${monthsSpan} months from ${input.earliestDate?.toISOString().split("T")[0] || "N/A"} to ${input.latestDate?.toISOString().split("T")[0] || "N/A"}.`,
+      details: `Temporal span is ${monthsSpan} months from ${input.earliestDate?.toISOString().split("T")[0] || "N/A"} to ${input.latestDate?.toISOString().split("T")[0] || "N/A"}. Requires >= ${minMonths} months.`,
       remediation: "Acquire historical ledger sync spanning at least 1-2 full annual working capital cycles.",
     });
 
     // 10. Target Availability & Label Definition
+    const targetCompat = checkTargetSourceCompatibility(targetDef.targetId, effectiveSourceType);
     checks.push({
       checkId: "CHECK_10_TARGET_DEFINITION",
       name: "Target Specification & Label Construction",
       category: "TARGET_AND_LEAKAGE",
-      status: "PASS",
-      observedValue: targetDef.targetId,
-      thresholdValue: "REGISTERED",
-      details: `Target '${targetDef.name}' registered with verified mathematical formula '${targetDef.formula}'.`,
+      status: targetCompat.compatible ? "PASS" : "BLOCKED",
+      observedValue: targetCompat.compatible ? targetDef.targetId : "UNAVAILABLE_FOR_CURRENT_SOURCE",
+      thresholdValue: "REGISTERED_AND_SOURCE_COMPATIBLE",
+      details: targetCompat.compatible
+        ? `Target '${targetDef.name}' registered with verified mathematical formula '${targetDef.formula}'.`
+        : `Target '${targetDef.name}' cannot be defensibly constructed: ${targetCompat.reason}`,
+      remediation: targetCompat.compatible
+        ? undefined
+        : "Select an observable target genuinely supported by this source (e.g. PAYMENT_CYCLE_DURATION or PAYMENT_CYCLE_RISK).",
     });
 
     // 11. Target Prevalence / Class Balance
@@ -358,16 +382,20 @@ export class MLReadinessGate {
     const exactBlockers = blockerChecks.map((b) => `${b.name}: ${b.details}`);
 
     let overallStatus: "LOCKED" | "CONDITIONAL" | "READY" = "LOCKED";
+    let evidenceGateStatus: EvidenceGateDecision = "BLOCKED";
     let summary = "";
 
     if (blockerChecks.length > 0) {
       overallStatus = "LOCKED";
+      evidenceGateStatus = "BLOCKED";
       summary = `ML TRAINING LOCKED. Dataset failed ${blockerChecks.length} mandatory readiness criteria. ${exactBlockers[0]}`;
     } else if (warningChecks.length > 0) {
       overallStatus = "CONDITIONAL";
-      summary = `ML TRAINING CONDITIONAL. Passed all hard criteria with ${warningChecks.length} warnings. Baseline models permissible.`;
+      evidenceGateStatus = "READY_WITH_LIMITATIONS";
+      summary = `ML TRAINING READY WITH LIMITATIONS. Passed all mandatory criteria with ${warningChecks.length} warnings. Baseline models permissible.`;
     } else {
       overallStatus = "READY";
+      evidenceGateStatus = "READY";
       summary = "ML TRAINING UNLOCKED. Dataset satisfies all 20 enterprise statistical and governance criteria.";
     }
 
@@ -381,6 +409,7 @@ export class MLReadinessGate {
       organizationId: input.organizationId,
       evaluatedAt: new Date().toISOString(),
       overallStatus,
+      evidenceGateStatus,
       summary,
       checks,
       blockerCount: blockerChecks.length,

@@ -218,4 +218,209 @@ export class FeatureEngine {
   ): ExtractedFeatureSnapshot[] {
     return invoices.map((inv) => this.extractFeaturesForInvoice(inv, allCorpus));
   }
+
+  public static readonly ERP_ACTIVE_NUMERIC_FEATURES = [
+    "vendorHistoricalCount",
+    "vendorHistoricalCycleMean",
+    "vendorHistoricalCycleMedian",
+    "vendorHistoricalCycleStd",
+    "vendorHistoricalExceptionRate",
+    "vendorHistoricalBlockRate",
+    "monetaryValue",
+    "monetaryValueLog",
+    "isServiceItem",
+    "isDirectSpend",
+    "hasGoodsReceipt",
+    "processComplexity",
+    "eventMonth",
+    "eventQuarter",
+    "eventDayOfWeek",
+    "recentVendorTxnCount30d",
+    "vendorDegree",
+    "vendorWeightedDegree",
+    "vendorConcentrationHHI",
+    "vendorCentralityProxy",
+    "connectedExposure",
+    "networkDependency",
+  ];
+
+  /**
+   * Computes leakage-safe pre-t0 features for an ERP purchase event (e.g. BPI 2019).
+   */
+  public static extractFeaturesForERPEvent(
+    targetCase: {
+      case_id: string;
+      vendor_id: string;
+      company_id: string;
+      event_timestamp: string;
+      invoice_event?: string | null;
+      clearing_event?: string | null;
+      monetary_value?: number | null;
+      item_type?: string | null;
+      spend_category?: string | null;
+      goods_receipt_event?: string | null;
+      has_payment_block?: boolean;
+      has_rework?: boolean;
+      has_exception?: boolean;
+    },
+    historicalCases: Array<{
+      case_id: string;
+      vendor_id: string;
+      company_id: string;
+      event_timestamp: string;
+      invoice_event?: string | null;
+      clearing_event?: string | null;
+      monetary_value?: number | null;
+      item_type?: string | null;
+      spend_category?: string | null;
+      process_duration?: number | null;
+      has_payment_block?: boolean;
+      has_rework?: boolean;
+      has_exception?: boolean;
+    }> = []
+  ): ExtractedFeatureSnapshot {
+    // Prediction anchor t0 is the invoice event timestamp (or creation timestamp)
+    const t0Str = targetCase.invoice_event || targetCase.event_timestamp;
+    const t0 = new Date(t0Str).getTime();
+    const t0Date = new Date(t0Str);
+
+    // 1. Transaction Features (Known at t0)
+    const monetaryValue = Number(targetCase.monetary_value) || 0;
+    const monetaryValueLog = Math.log1p(Math.max(0, monetaryValue));
+    const isServiceItem = (targetCase.item_type || "").toLowerCase().includes("service") ? 1 : 0;
+    const isDirectSpend = (targetCase.spend_category || "").toLowerCase().includes("direct") ? 1 : 0;
+    const hasGoodsReceipt = targetCase.goods_receipt_event && new Date(targetCase.goods_receipt_event).getTime() <= t0 ? 1 : 0;
+    const processComplexity = isServiceItem ? 5 : 3;
+
+    // 2. Temporal Features (Derived from t0)
+    const eventMonth = t0Date.getMonth() + 1;
+    const eventQuarter = Math.floor(t0Date.getMonth() / 3) + 1;
+    const eventDayOfWeek = t0Date.getDay();
+
+    // 3. Strict Pre-t0 Historical Filter: Only cases whose lifecycle completed strictly before t0
+    const preT0Completed = historicalCases.filter((c) => {
+      if (c.case_id === targetCase.case_id) return false;
+      if (!c.clearing_event) return false;
+      const clearTime = new Date(c.clearing_event).getTime();
+      return clearTime < t0;
+    });
+
+    // 4. Entity & Behavioral Features (Vendor historical pre-t0)
+    const vendorCasesPreT0 = preT0Completed.filter((c) => c.vendor_id === targetCase.vendor_id);
+    const vendorHistoricalCount = vendorCasesPreT0.length;
+
+    const durations = vendorCasesPreT0
+      .map((c) => Number(c.process_duration))
+      .filter((d) => !isNaN(d) && d > 0);
+
+    const vendorHistoricalCycleMean = durations.length > 0
+      ? durations.reduce((a, b) => a + b, 0) / durations.length
+      : 35.0; // Benchmark default
+
+    const sortedDurations = [...durations].sort((a, b) => a - b);
+    const vendorHistoricalCycleMedian = sortedDurations.length > 0
+      ? sortedDurations[Math.floor(sortedDurations.length / 2)]
+      : 32.0;
+
+    const variance = durations.length > 1
+      ? durations.reduce((acc, d) => acc + Math.pow(d - vendorHistoricalCycleMean, 2), 0) / durations.length
+      : 0;
+    const vendorHistoricalCycleStd = Math.sqrt(variance);
+
+    const vendorHistoricalExceptionCount = vendorCasesPreT0.filter((c) => c.has_exception || c.has_payment_block || c.has_rework).length;
+    const vendorHistoricalExceptionRate = vendorHistoricalCount > 0 ? vendorHistoricalExceptionCount / vendorHistoricalCount : 0;
+
+    const vendorHistoricalBlockCount = vendorCasesPreT0.filter((c) => c.has_payment_block).length;
+    const vendorHistoricalBlockRate = vendorHistoricalCount > 0 ? vendorHistoricalBlockCount / vendorHistoricalCount : 0;
+
+    // Recent 30-day frequency
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    const recentVendorTxnCount30d = vendorCasesPreT0.filter((c) => (t0 - new Date(c.clearing_event!).getTime()) <= thirtyDaysMs).length;
+
+    // 5. Network Features (Vendor-Company Topology pre-t0)
+    const connectedCompanies = new Set(vendorCasesPreT0.map((c) => c.company_id));
+    const vendorDegree = Math.max(1, connectedCompanies.size);
+
+    const vendorWeightedDegree = vendorCasesPreT0.reduce((acc, c) => acc + (Number(c.monetary_value) || 0), 0);
+
+    // Concentration HHI
+    let vendorConcentrationHHI = 1.0;
+    if (vendorCasesPreT0.length > 0 && vendorWeightedDegree > 0) {
+      const compMap: Record<string, number> = {};
+      for (const c of vendorCasesPreT0) {
+        compMap[c.company_id] = (compMap[c.company_id] || 0) + (Number(c.monetary_value) || 0);
+      }
+      let hhi = 0;
+      for (const compId of Object.keys(compMap)) {
+        const share = compMap[compId] / vendorWeightedDegree;
+        hhi += share * share;
+      }
+      vendorConcentrationHHI = hhi;
+    }
+
+    const allPreT0Vendors = new Set(preT0Completed.map((c) => c.vendor_id)).size;
+    const vendorCentralityProxy = allPreT0Vendors > 0 ? vendorDegree / Math.max(1, allPreT0Vendors) : 0.1;
+
+    // Connected exposure: open items as of t0
+    const openCasesAsOfT0 = historicalCases.filter((c) => {
+      if (c.case_id === targetCase.case_id) return false;
+      if (c.vendor_id !== targetCase.vendor_id) return false;
+      const cTime = new Date(c.event_timestamp).getTime();
+      if (cTime >= t0) return false;
+      if (!c.clearing_event) return true;
+      return new Date(c.clearing_event).getTime() > t0;
+    });
+    const connectedExposure = openCasesAsOfT0.reduce((acc, c) => acc + (Number(c.monetary_value) || 0), 0);
+
+    const totalCompanyVolumePreT0 = preT0Completed
+      .filter((c) => c.company_id === targetCase.company_id)
+      .reduce((acc, c) => acc + (Number(c.monetary_value) || 0), 0);
+    const networkDependency = totalCompanyVolumePreT0 > 0 ? vendorWeightedDegree / totalCompanyVolumePreT0 : 0.05;
+
+    const features: Record<string, number> = {
+      vendorHistoricalCount,
+      vendorHistoricalCycleMean: parseFloat(vendorHistoricalCycleMean.toFixed(2)),
+      vendorHistoricalCycleMedian: parseFloat(vendorHistoricalCycleMedian.toFixed(2)),
+      vendorHistoricalCycleStd: parseFloat(vendorHistoricalCycleStd.toFixed(2)),
+      vendorHistoricalExceptionRate: parseFloat(vendorHistoricalExceptionRate.toFixed(4)),
+      vendorHistoricalBlockRate: parseFloat(vendorHistoricalBlockRate.toFixed(4)),
+      monetaryValue,
+      monetaryValueLog: parseFloat(monetaryValueLog.toFixed(4)),
+      isServiceItem,
+      isDirectSpend,
+      hasGoodsReceipt,
+      processComplexity,
+      eventMonth,
+      eventQuarter,
+      eventDayOfWeek,
+      recentVendorTxnCount30d,
+      vendorDegree,
+      vendorWeightedDegree,
+      vendorConcentrationHHI: parseFloat(vendorConcentrationHHI.toFixed(4)),
+      vendorCentralityProxy: parseFloat(vendorCentralityProxy.toFixed(4)),
+      connectedExposure,
+      networkDependency: parseFloat(networkDependency.toFixed(4)),
+    };
+
+    const featureVector = this.ERP_ACTIVE_NUMERIC_FEATURES.map((fn) => features[fn] ?? 0);
+
+    const hashInput = JSON.stringify({
+      caseId: targetCase.case_id,
+      t0: t0Str,
+      version: this.FEATURE_VERSION,
+      featureVector,
+    });
+    const snapshotHash = crypto.createHash("sha256").update(hashInput).digest("hex");
+
+    return {
+      invoiceId: targetCase.case_id,
+      organizationId: targetCase.company_id,
+      predictionTimestamp: t0Date.toISOString(),
+      featureVersion: this.FEATURE_VERSION,
+      features,
+      featureVector,
+      featureNames: [...this.ERP_ACTIVE_NUMERIC_FEATURES],
+      snapshotHash,
+    };
+  }
 }

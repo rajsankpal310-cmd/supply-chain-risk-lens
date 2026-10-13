@@ -10,7 +10,13 @@ import { simulationService } from "@/services/simulationServices";
 import type { SimulationRun } from "@/types";
 import { formatDate, formatINR } from "@/utils/format";
 
-export function SimulationHistoryPage() {
+export function SimulationHistoryPage({
+  embedded = false,
+  onRunNew,
+}: {
+  embedded?: boolean;
+  onRunNew?: () => void;
+} = {}) {
   const navigate = useNavigate();
   const simQuery = useQuery({ queryKey: ["simulations"], queryFn: simulationService.getSimulations });
 
@@ -41,21 +47,23 @@ export function SimulationHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Simulation Execution History"
-        description="Historical log of executed financial shock scenarios, cascade impact calculations, and recovery timelines."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => simQuery.refetch()} disabled={simQuery.isFetching}>
-              <RefreshCw className={simQuery.isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
-              Refresh
-            </Button>
-            <Button onClick={() => navigate({ to: "/app/simulator" })} className="gap-2">
-              <Plus className="size-4" /> Run New Scenario
-            </Button>
-          </div>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title="Simulation Execution History"
+          description="Historical log of executed financial shock scenarios, cascade impact calculations, and recovery timelines."
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => simQuery.refetch()} disabled={simQuery.isFetching}>
+                <RefreshCw className={simQuery.isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
+                Refresh
+              </Button>
+              <Button onClick={() => onRunNew ? onRunNew() : navigate({ to: "/app/simulator" })} className="gap-2">
+                <Plus className="size-4" /> Run New Scenario
+              </Button>
+            </div>
+          }
+        />
+      )}
 
       {runs.length === 0 ? (
         <EmptyState

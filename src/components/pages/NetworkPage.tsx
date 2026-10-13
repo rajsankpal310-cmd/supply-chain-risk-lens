@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Activity, Building2, Filter, Network, RefreshCw, Search, Table2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RiskBadge } from "@/components/common/badges";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CardsSkeleton, ErrorState } from "@/components/common/states";
@@ -24,12 +24,25 @@ const RISKS: (RiskLevel | "ALL")[] = ["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"
 export function NetworkPage() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<NetworkView>("RISK");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const p = new URLSearchParams(window.location.search);
+    return p.get("firmId") || p.get("focus") || null;
+  });
   const [search, setSearch] = useState("");
   const [risk, setRisk] = useState<RiskLevel | "ALL">("ALL");
   const [industry, setIndustry] = useState("ALL");
   const [isolate, setIsolate] = useState(false);
   const [activeOnly, setActiveOnly] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search);
+    const target = p.get("firmId") || p.get("focus");
+    if (target) {
+      setSelectedId(target);
+    }
+  }, []);
 
   const netQuery = useQuery({ queryKey: ["network"], queryFn: networkService.getNetwork });
   const firmsQuery = useQuery({ queryKey: ["firms"], queryFn: firmService.getFirms });
@@ -43,12 +56,13 @@ export function NetworkPage() {
   const filteredNodes = useMemo(() => {
     const term = search.trim().toLowerCase();
     return nodes.filter((n) => {
+      if (selectedId && n.id === selectedId) return true;
       if (risk !== "ALL" && n.riskLevel !== risk) return false;
       if (industry !== "ALL" && n.industry !== industry) return false;
       if (term && !n.name.toLowerCase().includes(term) && !n.id.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [nodes, search, risk, industry]);
+  }, [nodes, search, risk, industry, selectedId]);
 
   const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : null;
   const selectedFirm = selectedId ? firmsQuery.data?.find((f) => f.id === selectedId) : null;
@@ -73,12 +87,12 @@ export function NetworkPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Supply Chain Network Topology"
-        description="Interactive graph visualization of connected firms, supply dependencies, transaction volumes, and risk contagion."
+        title="Supply Chain Network"
+        description="Interactive visual map of trading counterparties, financial dependencies, and risk exposure."
         actions={
           <Button variant="outline" onClick={() => netQuery.refetch()} disabled={netQuery.isFetching}>
             <RefreshCw className={netQuery.isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
-            Refresh Topology
+            Refresh Network
           </Button>
         }
       />
@@ -87,20 +101,20 @@ export function NetworkPage() {
       <Card className="gap-4 p-4">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6 items-center">
           <div>
-            <Label htmlFor="net-view" className="text-muted-foreground mb-1 block text-xs">Perspective View</Label>
+            <Label htmlFor="net-view" className="text-muted-foreground mb-1 block text-xs">Network View</Label>
             <Select value={viewMode} onValueChange={(v) => setViewMode(v as NetworkView)}>
               <SelectTrigger id="net-view"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="RISK">Risk Levels</SelectItem>
                 <SelectItem value="EXPOSURE">Financial Exposure</SelectItem>
                 <SelectItem value="IMPACT">Cascade Impact</SelectItem>
-                <SelectItem value="NETWORK">Standard Topology</SelectItem>
+                <SelectItem value="NETWORK">Relationship Map</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="net-search" className="text-muted-foreground mb-1 block text-xs">Search Node</Label>
+            <Label htmlFor="net-search" className="text-muted-foreground mb-1 block text-xs">Search Firm</Label>
             <div className="relative">
               <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden />
               <Input
@@ -140,7 +154,7 @@ export function NetworkPage() {
 
           <div className="flex items-center gap-2 pt-2 lg:pt-0">
             <Switch id="isolate-toggle" checked={isolate} onCheckedChange={setIsolate} />
-            <Label htmlFor="isolate-toggle" className="text-xs cursor-pointer">Isolate Node</Label>
+            <Label htmlFor="isolate-toggle" className="text-xs cursor-pointer">Focus Firm</Label>
           </div>
 
           <div className="flex items-center gap-2 pt-2 lg:pt-0">

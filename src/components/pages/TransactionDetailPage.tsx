@@ -33,10 +33,7 @@ export function TransactionDetailPage() {
     mutationFn: () => transactionService.updateTransaction(id, { paymentStatus: "PAID" }),
     onSuccess: () => {
       toast.success("Transaction completed. Outstanding amount cleared to ₹0.");
-      queryClient.invalidateQueries({ queryKey: ["transaction", id] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["network"] });
+      queryClient.invalidateQueries();
       setShowPaidConfirm(false);
     },
     onError: () => toast.error("Could not complete the transaction settlement"),
@@ -78,7 +75,7 @@ export function TransactionDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate({ to: "/app/network" })}
+              onClick={() => navigate({ to: "/app/network", search: { firmId: t.buyerId || t.supplierId } as any })}
               className="gap-1.5 text-xs"
             >
               <Network className="size-3.5 text-primary" /> View in Network

@@ -143,8 +143,10 @@ export function AlertsPage() {
         </div>
       </Card>
 
-      {filteredAlerts.length === 0 ? (
-        <EmptyState title="No alerts match filters" description="All clear! Try clearing category or status filters." />
+      {alerts.length === 0 ? (
+        <EmptyState title="No active risk alerts" description="All firms and transactions are currently operating within nominal risk thresholds." />
+      ) : filteredAlerts.length === 0 ? (
+        <EmptyState title="No alerts match filters" description="Try clearing your category or severity filters." />
       ) : (
         <div className="space-y-3">
           {filteredAlerts.map((a) => (
@@ -163,12 +165,31 @@ export function AlertsPage() {
                     Firm: {a.firmName} ({a.firmId})
                   </Link>
 
-                  <p className="text-xs text-muted-foreground">{a.reason}</p>
-                  <p className="text-xs font-medium text-risk-high">Impact: {a.impact}</p>
-                  <p className="text-xs text-muted-foreground">Action: {a.recommendedAction}</p>
+                  <div className="pt-1.5 space-y-1.5 text-xs">
+                    <div>
+                      <span className="font-semibold text-foreground">Issue: </span>
+                      <span className="text-muted-foreground">{a.reason}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-risk-high">Impact: </span>
+                      <span className="text-foreground">{a.impact}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-primary">Recommended Action: </span>
+                      <span className="text-muted-foreground">{a.recommendedAction}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap md:flex-col items-end gap-2 shrink-0 border-t md:border-t-0 pt-2 md:pt-0">
+                  {a.category === "DEADLOCK" && (
+                    <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/deadlocks" })} className="gap-1 text-xs border-amber-500/40 text-amber-700 dark:text-amber-300">
+                      View Deadlock Chain
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/recommendations" })} className="gap-1 text-xs">
+                    <Lightbulb className="size-3.5" /> Recommendation
+                  </Button>
                   {!a.read ? (
                     <Button variant="ghost" size="sm" onClick={() => markReadMutation.mutate({ id: a.id, read: true })} className="gap-1 text-xs">
                       <Check className="size-3.5" /> Mark Read
@@ -178,9 +199,6 @@ export function AlertsPage() {
                       Mark Unread
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/app/recommendations" })} className="gap-1 text-xs">
-                    <Lightbulb className="size-3.5" /> Recommendation
-                  </Button>
                   {!a.archived && (
                     <Button variant="ghost" size="sm" onClick={() => setArchivingAlert(a)} className="gap-1 text-xs text-muted-foreground">
                       <Archive className="size-3.5" /> Archive

@@ -6,6 +6,8 @@ export const ENDPOINTS = {
   login: "/auth/login",
   register: "/auth/register",
   currentUser: "/auth/me",
+  teamUsers: "/auth/users",
+  teamUser: (id: string) => `/auth/users/${id}`,
   dashboardSummary: "/dashboard/summary",
   transactions: "/transactions",
   transaction: (id: string) => `/transactions/${id}`,

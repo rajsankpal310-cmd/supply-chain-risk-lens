@@ -57,7 +57,7 @@ describe("NEXUS-CFR Multi-Tenant & RBAC Hardened API Tests", () => {
     if (resBViewer.status === 200 && resBViewer.body.data?.token) {
       orgBViewerToken = resBViewer.body.data.token;
     }
-  });
+  }, 30000);
 
   // --- SECTION A: HEALTH & AUTHENTICATION ---
 

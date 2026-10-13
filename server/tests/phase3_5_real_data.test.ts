@@ -106,13 +106,13 @@ describe("NEXUS-CFR Phase 3.5 — Real Data Acquisition & Verified Foundation Te
     }
 
     const resDemo = await request(app)
-      .get("/api/transactions?limit=50")
+      .get("/api/transactions?limit=100&search=TXN-A")
       .set("Authorization", `Bearer ${orgAAdminToken}`);
 
     const demoItems = resDemo.body.data.items || resDemo.body.data;
     expect(demoItems.length).toBeGreaterThan(0);
     const seedDemoTxns = demoItems.filter(
-      (d: any) => (d.id && d.id.startsWith("TXN-A-")) || (d.transactionId && d.transactionId.startsWith("TXN-A-"))
+      (d: any) => (d.id && d.id.startsWith("TXN-A-")) || (d.transactionId && d.transactionId.startsWith("TXN-A-")) || d.sourceType === "DEMO_ONLY"
     );
     expect(seedDemoTxns.length).toBeGreaterThan(0);
     for (const d of seedDemoTxns) {

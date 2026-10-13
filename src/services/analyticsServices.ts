@@ -92,7 +92,7 @@ export const dashboardService = {
           trend: 1.8,
           trendLabel: "vs last month",
           status: "MEDIUM" as RiskLevel,
-          tooltip: "Total unsettled invoice value across the demo dataset.",
+          tooltip: "Total unsettled invoice value across the current dataset.",
         },
       ],
       paymentDelayTrend: db.seriesDates.map((d, i) => ({

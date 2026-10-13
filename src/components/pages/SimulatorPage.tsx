@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { firmService } from "@/services/dataServices";
 import { SIMULATION_STAGES, simulationService } from "@/services/simulationServices";
+import { SimulationHistoryPage } from "@/components/pages/SimulationHistoryPage";
 import type { RiskLevel, ScenarioInput, ScenarioType, SimulationRun } from "@/types";
 import { formatINR } from "@/utils/format";
 
@@ -29,8 +30,9 @@ const SCENARIO_TYPES: ScenarioType[] = [
 
 const SEVERITIES: RiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-export function SimulatorPage() {
+export function SimulatorPage({ initialTab = "run" }: { initialTab?: "run" | "history" } = {}) {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"run" | "history">(initialTab);
   const firmsQuery = useQuery({ queryKey: ["firms"], queryFn: firmService.getFirms });
 
   const [affectedFirmId, setAffectedFirmId] = useState<string>("");
@@ -87,22 +89,54 @@ export function SimulatorPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Interactive Scenario Simulator"
-        description="Simulate financial shocks across your supply chain network and measure stress propagation, cascade probability, and expected losses."
+        title="Scenario Simulator"
+        description="Simulate 'What happens if...' stress events to assess counterparty impact and supply chain ripple effects."
       />
 
-      {!simulationResult && !isSimulating && (
+      <div className="flex items-center gap-2 border-b pb-3">
+        <Button
+          variant={activeTab === "run" ? "default" : "outline"}
+          size="sm"
+          className="text-xs font-semibold"
+          onClick={() => setActiveTab("run")}
+        >
+          Run Scenario
+        </Button>
+        <Button
+          variant={activeTab === "history" ? "default" : "outline"}
+          size="sm"
+          className="text-xs font-semibold"
+          onClick={() => setActiveTab("history")}
+        >
+          Past Simulations
+        </Button>
+      </div>
+
+      {activeTab === "history" ? (
+        <SimulationHistoryPage embedded={true} onRunNew={() => setActiveTab("run")} />
+      ) : firms.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Activity className="mx-auto size-10 text-muted-foreground/60 mb-3" />
+          <h3 className="font-semibold text-lg">No Counterparties Available</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Upload transaction data to run counterparty stress scenarios and analyze ripple effects.
+          </p>
+          <Button className="mt-4" onClick={() => navigate({ to: "/app/upload" })}>
+            Upload Data
+          </Button>
+        </Card>
+      ) : !simulationResult && !isSimulating && (
         <>
           {/* Conversational What-If Framing */}
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-1">
             <p className="text-[11px] font-semibold text-primary uppercase tracking-wider">
-              Conversational Scenario Query:
+              Scenario Question
             </p>
             <p className="text-sm font-semibold text-foreground">
-              "What would happen if {firms.find((f) => f.id === activeFirmId)?.name || "a counterparty"} experiences a {scenarioType.replace(/_/g, " ").toLowerCase()} of {delayDays} days on an obligation of {formatINR(amount)}?"
+              "What happens if {firms.find((f) => f.id === activeFirmId)?.name || "a counterparty"} experiences a {scenarioType.replace(/_/g, " ").toLowerCase()} of {delayDays} days on an obligation of {formatINR(amount)}?"
             </p>
             <p className="text-xs text-muted-foreground">
-              Configure parameters below to project how financial stress propagates through upstream suppliers and quantify potential cascade defaults.
+              Adjust parameters below to project potential ripple effects across your supply chain network.
             </p>
           </div>
 
@@ -110,12 +144,12 @@ export function SimulatorPage() {
             <form onSubmit={handleRunSimulation} className="space-y-6">
               <div className="flex items-center gap-2 border-b pb-3">
                 <Activity className="text-primary size-5" />
-                <h2 className="text-sm font-semibold">Configure Scenario Parameters</h2>
+                <h2 className="text-sm font-semibold">Scenario Parameters</h2>
               </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
-                <Label htmlFor="sim-firm" className="text-muted-foreground mb-1 block text-xs">Affected Root Firm</Label>
+                <Label htmlFor="sim-firm" className="text-muted-foreground mb-1 block text-xs">Target Company</Label>
                 <Select value={activeFirmId} onValueChange={setAffectedFirmId}>
                   <SelectTrigger id="sim-firm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -127,7 +161,7 @@ export function SimulatorPage() {
               </div>
 
               <div>
-                <Label htmlFor="sim-type" className="text-muted-foreground mb-1 block text-xs">Scenario Shock Type</Label>
+                <Label htmlFor="sim-type" className="text-muted-foreground mb-1 block text-xs">What-If Scenario Type</Label>
                 <Select value={scenarioType} onValueChange={(v) => setScenarioType(v as ScenarioType)}>
                   <SelectTrigger id="sim-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -139,7 +173,7 @@ export function SimulatorPage() {
               </div>
 
               <div>
-                <Label htmlFor="sim-severity" className="text-muted-foreground mb-1 block text-xs">Shock Severity</Label>
+                <Label htmlFor="sim-severity" className="text-muted-foreground mb-1 block text-xs">Severity Level</Label>
                 <Select value={severity} onValueChange={(v) => setSeverity(v as RiskLevel)}>
                   <SelectTrigger id="sim-severity"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -151,12 +185,12 @@ export function SimulatorPage() {
               </div>
 
               <div>
-                <Label htmlFor="sim-delay" className="text-muted-foreground mb-1 block text-xs">Payment Delay (Days)</Label>
+                <Label htmlFor="sim-delay" className="text-muted-foreground mb-1 block text-xs">Expected Payment Delay (Days)</Label>
                 <Input id="sim-delay" type="number" min={0} max={365} value={delayDays} onChange={(e) => setDelayDays(Number(e.target.value))} />
               </div>
 
               <div>
-                <Label htmlFor="sim-amount" className="text-muted-foreground mb-1 block text-xs">Shock Exposure Amount (INR)</Label>
+                <Label htmlFor="sim-amount" className="text-muted-foreground mb-1 block text-xs">Exposure Amount (₹)</Label>
                 <Input id="sim-amount" type="number" step={100000} value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
               </div>
 
@@ -166,14 +200,14 @@ export function SimulatorPage() {
               </div>
 
               <div>
-                <Label htmlFor="sim-recovery" className="text-muted-foreground mb-1 block text-xs">Estimated Recovery Rate (%)</Label>
+                <Label htmlFor="sim-recovery" className="text-muted-foreground mb-1 block text-xs">Estimated Recovery (%)</Label>
                 <Input id="sim-recovery" type="number" min={0} max={100} value={recoveryRate} onChange={(e) => setRecoveryRate(Number(e.target.value))} />
               </div>
             </div>
 
             <div className="flex justify-end border-t pt-4">
               <Button type="submit" size="lg" className="gap-2">
-                <Play className="size-4" /> Run Simulation Engine
+                <Play className="size-4" /> Run What-If Simulation
               </Button>
             </div>
           </form>
@@ -186,7 +220,7 @@ export function SimulatorPage() {
         <Card className="p-10 text-center space-y-6">
           <Loader2 className="text-primary mx-auto size-12 animate-spin" />
           <div>
-            <h2 className="text-lg font-semibold">Simulating Financial Cascade Shock...</h2>
+            <h2 className="text-lg font-semibold">Calculating Financial Ripple Effects...</h2>
             <p className="text-muted-foreground mt-1 text-sm">{SIMULATION_STAGES[currentStageIndex]}</p>
           </div>
           <div className="mx-auto max-w-md space-y-2">
@@ -263,8 +297,8 @@ export function SimulatorPage() {
             <Button variant="outline" onClick={() => navigate({ to: "/app/recommendations" })} className="gap-2">
               <Lightbulb className="size-4" /> View Decision Recommendations
             </Button>
-            <Button variant="outline" onClick={() => navigate({ to: "/app/simulations" })} className="gap-2">
-              View Simulation History <ArrowRight className="size-4" />
+            <Button variant="outline" onClick={() => setActiveTab("history")} className="gap-2">
+              View Past Simulations <ArrowRight className="size-4" />
             </Button>
           </div>
         </div>

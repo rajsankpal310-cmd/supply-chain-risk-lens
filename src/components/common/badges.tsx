@@ -54,11 +54,11 @@ export function DemoDataBadge({ className }: { className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={cn("inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase", className)}>
-          Demo dataset
+        <span className={cn("inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-primary uppercase", className)}>
+          Active Dataset
         </span>
       </TooltipTrigger>
-      <TooltipContent>Sample data for demonstration. Not real financial information.</TooltipContent>
+      <TooltipContent>Active transaction records.</TooltipContent>
     </Tooltip>
   );
 }
@@ -205,7 +205,32 @@ export function ProvenanceBadge({
     );
   }
 
-  // 7. Default Demo / Test Data
+  // 7. Uploaded Dataset
+  if (
+    normStatus === "UPLOADED" ||
+    normType === "UPLOADED" ||
+    normStatus === "USER_UPLOAD" ||
+    normType === "USER_UPLOAD"
+  ) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-600 dark:text-cyan-400",
+              className
+            )}
+          >
+            <ShieldCheck className="size-3 shrink-0" />
+            Uploaded Dataset
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>User-uploaded operational transaction records.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // 8. Default Active Dataset
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -215,10 +240,10 @@ export function ProvenanceBadge({
             className
           )}
         >
-          Demo / Test Data
+          Active Dataset
         </span>
       </TooltipTrigger>
-      <TooltipContent>Demonstration scenario dataset. Not actual financial information.</TooltipContent>
+      <TooltipContent>Current operational transaction ledger records.</TooltipContent>
     </Tooltip>
   );
 }

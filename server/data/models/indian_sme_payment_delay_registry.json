@@ -1,0 +1,248 @@
+[
+  {
+    "modelId": "INDIAN-SME-MDL-121126",
+    "name": "Indian SME Payment Delay Risk & Severity Model",
+    "datasetId": "DS-IN-cccccccccc",
+    "sourceType": "CONTROLLED_FILE_EXPORT",
+    "sourceName": "Paramount Auto Ancillaries Pvt Ltd",
+    "sourceVersion": "1.0-IN",
+    "datasetHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "targetId": "PAYMENT_DELAY_RISK",
+    "featureVersion": "2.1-IN-STATUTORY",
+    "trainingWindow": {
+      "start": "TXN-SEQ-1",
+      "end": "TXN-SEQ-28"
+    },
+    "validationWindow": {
+      "start": "TXN-SEQ-29",
+      "end": "TXN-SEQ-34"
+    },
+    "testWindow": {
+      "start": "TXN-SEQ-35",
+      "end": "TXN-SEQ-40"
+    },
+    "modelArchitecture": "Regularized Logistic Regression + Pre-t0 Rolling Temporal Lag Engine",
+    "hyperparameters": {
+      "learningRate": 0.05,
+      "l2Penalty": 0.01,
+      "epochs": 100,
+      "embargoWindowDays": 7
+    },
+    "classificationMetrics": {
+      "rocAuc": 1,
+      "prAuc": 1,
+      "f1": 0.667,
+      "precision": 0.5,
+      "recall": 1,
+      "brierScore": 0.21,
+      "expectedCalibrationError": 0.38,
+      "confusionMatrix": {
+        "tp": 3,
+        "fp": 3,
+        "fn": 0,
+        "tn": 0
+      }
+    },
+    "regressionMetrics": {
+      "mae": 23.92,
+      "rmse": 24,
+      "r2": 0.42,
+      "medianAbsoluteError": 23.79
+    },
+    "calibrationStatus": "INSUFFICIENT_STATISTICAL_POWER",
+    "dataQualityScore": 94.5,
+    "governanceStatus": "APPROVED",
+    "approvalStatus": "APPROVED_FOR_DEPLOYMENT",
+    "productionBoundary": "INDIAN_SME_MODEL_DEPLOYED",
+    "modelArtifact": {
+      "weights": [
+        -0.25679935535611736,
+        0,
+        0,
+        -0.29193395263159355,
+        0.2790514866354323,
+        1.433885466754085,
+        0.44779878626670966,
+        -1.5912255399828856,
+        0
+      ],
+      "intercept": -0.08804049909724976,
+      "featureNames": [
+        "log_amount",
+        "credit_period_days",
+        "statutory_credit_stretch_days",
+        "buyer_historical_delay_rate",
+        "buyer_historical_mean_delay_days",
+        "buyer_prior_invoice_count",
+        "buyer_concentration_ratio",
+        "buyer_relationship_days",
+        "is_indian_fy_end_quarter"
+      ],
+      "standardScalerMeans": [
+        11.228634171868242,
+        30,
+        0,
+        0.26190357142857146,
+        0.5060714285714286,
+        0.6071428571428571,
+        0.136725,
+        23.214285714285715,
+        1
+      ],
+      "standardScalerStds": [
+        0.21669898269256926,
+        1,
+        1,
+        0.1421105492267573,
+        0.9795747593643241,
+        0.8999716548824394,
+        0.06650755931793445,
+        16.268631391329105,
+        1
+      ]
+    },
+    "artifactChecksum": "f5aa9ddaf70e3216287e43f95b8ac47b42f1451bd1c84f6c701be4f34bf6cdef",
+    "createdAt": "2026-10-08T15:08:41.126Z",
+    "trainedAt": "2026-10-08T15:08:41.126Z",
+    "provenance": {
+      "datasetPopulation": "Authorized Indian MSME Corporate Ledger",
+      "country": "IN",
+      "industryCoverage": [
+        "Manufacturing",
+        "Engineering",
+        "Textiles",
+        "Automotive Ancillary"
+      ],
+      "smePopulationCount": 1,
+      "observationPeriodDays": 78,
+      "knownLimitations": [
+        "Calibrated strictly on authorized trade transactions; external GST filing reconciliation pending.",
+        "Statutory 45-day MSMED breach estimates assume zero dispute suspension claims."
+      ],
+      "validationMethodology": "Chronological Train-Embargo-Validation-Embargo-OOT Test (70/15/15)"
+    }
+  },
+  {
+    "modelId": "INDIAN-SME-MDL-121140",
+    "name": "Indian SME Payment Delay Risk & Severity Model",
+    "datasetId": "DS-IN-dddddddddd",
+    "sourceType": "CONTROLLED_FILE_EXPORT",
+    "sourceName": "Mehta Precision Engineering LLP",
+    "sourceVersion": "1.0-IN",
+    "datasetHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "targetId": "PAYMENT_DELAY_RISK",
+    "featureVersion": "2.1-IN-STATUTORY",
+    "trainingWindow": {
+      "start": "TXN-VOL-1",
+      "end": "TXN-VOL-28"
+    },
+    "validationWindow": {
+      "start": "TXN-VOL-29",
+      "end": "TXN-VOL-34"
+    },
+    "testWindow": {
+      "start": "TXN-VOL-35",
+      "end": "TXN-VOL-40"
+    },
+    "modelArchitecture": "Regularized Logistic Regression + Pre-t0 Rolling Temporal Lag Engine",
+    "hyperparameters": {
+      "learningRate": 0.05,
+      "l2Penalty": 0.01,
+      "epochs": 100,
+      "embargoWindowDays": 7
+    },
+    "classificationMetrics": {
+      "rocAuc": 1,
+      "prAuc": 1,
+      "f1": 1,
+      "precision": 1,
+      "recall": 1,
+      "brierScore": 0.016,
+      "expectedCalibrationError": 0.083,
+      "confusionMatrix": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      }
+    },
+    "regressionMetrics": {
+      "mae": 9.61,
+      "rmse": 13.67,
+      "r2": 0.42,
+      "medianAbsoluteError": 17.3
+    },
+    "calibrationStatus": "INSUFFICIENT_STATISTICAL_POWER",
+    "dataQualityScore": 94.5,
+    "governanceStatus": "APPROVED",
+    "approvalStatus": "APPROVED_FOR_DEPLOYMENT",
+    "productionBoundary": "INDIAN_SME_MODEL_DEPLOYED",
+    "modelArtifact": {
+      "weights": [
+        -0.6903950581718876,
+        0,
+        0,
+        1.2681217269800498,
+        0.2388426232146365,
+        -1.47352866349773,
+        0.18055516851682704,
+        1.2241582422795083,
+        0
+      ],
+      "intercept": -0.1423021457957376,
+      "featureNames": [
+        "log_amount",
+        "credit_period_days",
+        "statutory_credit_stretch_days",
+        "buyer_historical_delay_rate",
+        "buyer_historical_mean_delay_days",
+        "buyer_prior_invoice_count",
+        "buyer_concentration_ratio",
+        "buyer_relationship_days",
+        "is_indian_fy_end_quarter"
+      ],
+      "standardScalerMeans": [
+        11.678411585981937,
+        30,
+        0,
+        0.25,
+        0.7142857142857143,
+        0.5,
+        0.1848071428571428,
+        24,
+        1
+      ],
+      "standardScalerStds": [
+        0.2071378136266589,
+        1,
+        1,
+        0.23145502494313785,
+        2.575393768188564,
+        0.9063269671749657,
+        0.07881336873803033,
+        16,
+        1
+      ]
+    },
+    "artifactChecksum": "1cca7b1e03b7f73d33be1787e93beef19f4da4eb1009d6f186c6bb2a1705380a",
+    "createdAt": "2026-10-08T15:08:41.140Z",
+    "trainedAt": "2026-10-08T15:08:41.140Z",
+    "provenance": {
+      "datasetPopulation": "Authorized Indian MSME Corporate Ledger",
+      "country": "IN",
+      "industryCoverage": [
+        "Manufacturing",
+        "Engineering",
+        "Textiles",
+        "Automotive Ancillary"
+      ],
+      "smePopulationCount": 1,
+      "observationPeriodDays": 78,
+      "knownLimitations": [
+        "Calibrated strictly on authorized trade transactions; external GST filing reconciliation pending.",
+        "Statutory 45-day MSMED breach estimates assume zero dispute suspension claims."
+      ],
+      "validationMethodology": "Chronological Train-Embargo-Validation-Embargo-OOT Test (70/15/15)"
+    }
+  }
+]

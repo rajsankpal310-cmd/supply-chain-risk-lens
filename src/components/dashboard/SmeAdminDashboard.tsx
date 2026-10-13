@@ -55,11 +55,47 @@ export function SmeAdminDashboard({
   const overdueTxns = data.overdueTransactions ?? [];
   const batch = data.dataProvenanceSummary?.lastBatch;
 
+  const isDemo = user?.organizationId === "ORG-001" || user?.email?.includes("demo");
+  const isEmptySme = data.executiveSummary?.totalFirmsCount === 0;
+
+  if (isEmptySme) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Risk & Portfolio Overview"
+          description="Monitor receivables, cash-flow stress, payment delays and supply-chain exposure across your firm network."
+        />
+
+        <Card className="p-12 text-center max-w-2xl mx-auto space-y-4 border-dashed border-border/80">
+          <div className="grid size-14 place-items-center rounded-full bg-primary/10 text-primary mx-auto">
+            <Upload className="size-7" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Upload Your Data to Begin Risk Analysis</h3>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-md mx-auto leading-relaxed">
+              No transactions or counterparties have been imported into this organization yet.
+              Upload your transaction data or connect your accounting system to unlock risk scoring,
+              payment delay predictions, and supply chain network mapping.
+            </p>
+          </div>
+          <div className="flex justify-center gap-3 pt-3">
+            <Button onClick={() => navigate({ to: "/app/upload" })} className="gap-2">
+              <Upload className="size-4" /> Upload Data
+            </Button>
+            <Button variant="outline" onClick={() => navigate({ to: "/app/upload" })} className="gap-2">
+              Accounting & ERP Connections
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Enterprise Operational Command"
-        description="Comprehensive monitoring of receivables, cash-flow stress, and invoice collection across your SME network."
+        title="Risk & Portfolio Overview"
+        description="Monitor receivables, cash-flow stress, payment delays and supply-chain exposure across your firm network."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={onRefresh} disabled={isFetching}>
@@ -85,6 +121,24 @@ export function SmeAdminDashboard({
           </div>
         }
       />
+
+      {/* Demo Mode Notice */}
+      {isDemo && (
+        <div className="rounded-xl border border-purple-500/35 bg-purple-500/5 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2.5">
+            <Badge variant="outline" className="border-purple-500/50 bg-purple-500/15 text-purple-700 dark:text-purple-300 font-semibold text-[10px]">
+              DEMO ORGANIZATION
+            </Badge>
+            <span className="text-muted-foreground">
+              Viewing <strong className="text-foreground">Apex Manufacturing Consortium</strong> with verified presentation sample data. Not real SME corporate financials.
+            </span>
+          </div>
+          <Badge variant="secondary" className="text-[10px] self-start sm:self-auto font-mono">
+            Demo Mode • Sample Data
+          </Badge>
+        </div>
+      )}
+
 
       {/* Operational Quick Action Bar */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

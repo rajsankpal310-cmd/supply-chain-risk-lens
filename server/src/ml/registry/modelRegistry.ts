@@ -9,44 +9,69 @@
  * UNAPPROVED MODELS CANNOT BE DEPLOYED OR SERVE PRODUCTION PREDICTIONS.
  */
 
+import fs from "fs";
+import path from "path";
 import crypto from "crypto";
 import { ClassificationMetrics, RegressionMetrics } from "../models/metrics";
 import { CalibrationReport } from "../models/calibration";
 import { GlobalFeatureImportance } from "../explainability/explainer";
+import { ModelPromotionGate } from "../governance/modelPromotionGate";
 
 export type ModelLifecycleState =
   | "EXPERIMENTAL"
   | "VALIDATED"
+  | "CANDIDATE"
+  | "PRODUCTION"
+  | "RETIRED"
+  | "BLOCKED"
   | "APPROVED"
   | "DEPLOYED"
-  | "MONITORED"
-  | "RETIRED";
+  | "MONITORED";
 
 export interface GovernedModelArtifact {
   modelId: string;
   organizationId: string;
   version: string;
-  modelType: "LOGISTIC_REGRESSION" | "RIDGE_REGRESSION" | "DECISION_FOREST";
-  targetId: string;
-  targetVersion: string;
+  modelVersion?: string;
   datasetId: string;
   datasetVersion: string;
   featureVersion: string;
+  modelType: string;
+  targetId: string;
+  target?: string;
+  targetVersion: string;
+  features?: string[];
   dataProvenanceClassification?: string;
+  sourceProvenance?: string;
   lifecycleState: ModelLifecycleState;
+  status?: ModelLifecycleState;
   isProductionDeployed: boolean;
+  deploymentStatus?: "DEPLOYED" | "UNDEPLOYED";
+  limitations?: string;
   trainingMetadata: {
     trainedAt: string;
     trainingRecordCount: number;
     validationRecordCount: number;
     testRecordCount: number;
     trainWindow: { start: string; end: string };
+    valWindow?: { start: string; end: string };
+    testWindow?: { start: string; end: string };
     validationStrategy: string;
     hyperparameters: Record<string, any>;
   };
+  trainingPeriod?: { start: string; end: string };
+  validationPeriod?: { start: string; end: string };
+  testPeriod?: { start: string; end: string };
+  trainingTimestamp?: string;
   evaluationMetrics: {
     validation: ClassificationMetrics | RegressionMetrics;
     outOfTimeTest: ClassificationMetrics | RegressionMetrics;
+    durationRegressionOot?: ClassificationMetrics | RegressionMetrics;
+    [key: string]: any;
+  };
+  metrics?: {
+    validation: ClassificationMetrics | RegressionMetrics;
+    outOfTimeTest?: ClassificationMetrics | RegressionMetrics;
   };
   calibration: CalibrationReport;
   globalImportance: GlobalFeatureImportance[];
@@ -69,6 +94,47 @@ export interface GovernedModelArtifact {
 export class MultiTenantModelRegistry {
   // Tenant-isolated in-memory registry (keyed by organizationId -> Map<modelId, GovernedModelArtifact>)
   private static tenantRegistries: Map<string, Map<string, GovernedModelArtifact>> = new Map();
+  private static persistencePath = path.resolve(__dirname, "../../../data/models/registry_store.json");
+
+  static {
+    this.loadFromDisk();
+  }
+
+  public static loadFromDisk(): void {
+    try {
+      if (fs.existsSync(this.persistencePath)) {
+        const raw = fs.readFileSync(this.persistencePath, "utf8");
+        const parsed = JSON.parse(raw);
+        for (const [orgId, models] of Object.entries(parsed)) {
+          if (!this.tenantRegistries.has(orgId)) {
+            this.tenantRegistries.set(orgId, new Map());
+          }
+          for (const [mId, artifact] of Object.entries(models as any)) {
+            this.tenantRegistries.get(orgId)!.set(mId, artifact as GovernedModelArtifact);
+          }
+        }
+      }
+    } catch {
+      // Non-fatal if checkpoint is initially empty
+    }
+  }
+
+  public static saveToDisk(): void {
+    try {
+      const dir = path.dirname(this.persistencePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const serialized: Record<string, Record<string, any>> = {};
+      for (const [orgId, map] of this.tenantRegistries.entries()) {
+        serialized[orgId] = {};
+        for (const [mId, artifact] of map.entries()) {
+          serialized[orgId][mId] = artifact;
+        }
+      }
+      fs.writeFileSync(this.persistencePath, JSON.stringify(serialized, null, 2), "utf8");
+    } catch {
+      // Non-fatal file write warning
+    }
+  }
 
   /**
    * Registers a new model artifact scoped strictly to the specified organization.
@@ -99,9 +165,20 @@ export class MultiTenantModelRegistry {
       ...params,
       modelId,
       organizationId,
+      modelVersion: params.version,
+      target: params.targetId,
       dataProvenanceClassification: params.dataProvenanceClassification || "REAL_OBSERVED_ENTERPRISE",
+      sourceProvenance: params.dataProvenanceClassification || "REAL_OBSERVED_ENTERPRISE",
       lifecycleState: "EXPERIMENTAL",
+      status: "EXPERIMENTAL",
       isProductionDeployed: false,
+      deploymentStatus: "UNDEPLOYED",
+      limitations: params.limitations || "Requires ongoing monitoring against temporal drift and censoring bias.",
+      trainingTimestamp: params.trainingMetadata?.trainedAt || new Date().toISOString(),
+      trainingPeriod: params.trainingMetadata?.trainWindow,
+      validationPeriod: params.trainingMetadata?.valWindow,
+      testPeriod: params.trainingMetadata?.testWindow,
+      metrics: params.evaluationMetrics,
       governance: { complianceAttestation: false },
       checksum,
     };
@@ -110,6 +187,7 @@ export class MultiTenantModelRegistry {
       this.tenantRegistries.set(organizationId, new Map());
     }
     this.tenantRegistries.get(organizationId)!.set(modelId, artifact);
+    this.saveToDisk();
 
     return artifact;
   }
@@ -145,6 +223,10 @@ export class MultiTenantModelRegistry {
     );
   }
 
+  public static listModels(organizationId: string): GovernedModelArtifact[] {
+    return this.listModelsForTenant(organizationId);
+  }
+
   /**
    * Gets a specific model artifact, enforcing tenant boundaries.
    */
@@ -165,6 +247,10 @@ export class MultiTenantModelRegistry {
     return model;
   }
 
+  public static getArtifact(organizationId: string, modelId: string): GovernedModelArtifact | null {
+    return this.getModel(organizationId, modelId);
+  }
+
   /**
    * Advances the model lifecycle state with strict state machine and simulated data firewall.
    */
@@ -180,15 +266,20 @@ export class MultiTenantModelRegistry {
     if (!model) throw new Error(`Model ${modelId} not found for tenant.`);
 
     // Strict State Machine Transitions
-    if (newState === "DEPLOYED") {
-      // Rule 1: Cannot deploy a RETIRED model directly
-      if ((model.lifecycleState as string) === "RETIRED") {
-        throw new Error("Deployment violation: Retired models cannot be directly deployed. Re-evaluation required.");
+    if (newState === "DEPLOYED" || newState === "PRODUCTION") {
+      // Rule 1: Cannot deploy a RETIRED or BLOCKED model directly
+      if ((model.lifecycleState as string) === "RETIRED" || (model.lifecycleState as string) === "BLOCKED") {
+        throw new Error("Deployment violation: Retired or Blocked models cannot be directly deployed. Re-evaluation required.");
       }
 
-      // Rule 2: Cannot deploy without prior approval
-      if (model.lifecycleState !== "APPROVED") {
-        throw new Error("Deployment violation: Cannot deploy an unapproved model. Model must be APPROVED first.");
+      // Rule 2: Cannot deploy without prior validation or approval
+      const eligiblePrecedingStates = ["APPROVED", "VALIDATED", "CANDIDATE"];
+      if (!eligiblePrecedingStates.includes(model.lifecycleState)) {
+        throw new Error("Deployment violation: Cannot deploy an unapproved model. Model must be APPROVED, VALIDATED, or CANDIDATE first.");
+      }
+
+      if (actorRole !== "ADMIN" && actorRole !== "SME_ADMIN") {
+        throw new Error("Governance policy violation: Only ADMIN or SME_ADMIN can deploy a model to production.");
       }
 
       // Rule 3: SIMULATED DATA FIREWALL (Server-side enforcement)
@@ -209,15 +300,26 @@ export class MultiTenantModelRegistry {
         if (m.targetId === model.targetId && m.isProductionDeployed) {
           m.isProductionDeployed = false;
           m.lifecycleState = "MONITORED";
+          m.status = "MONITORED";
+          m.deploymentStatus = "UNDEPLOYED";
         }
       }
-      model.lifecycleState = "DEPLOYED";
+      model.lifecycleState = newState;
+      model.status = newState;
       model.isProductionDeployed = true;
+      model.deploymentStatus = "DEPLOYED";
+      if (!model.governance.approvedBy) {
+        model.governance.approvedBy = actorRole;
+        model.governance.approvedAt = new Date().toISOString();
+        model.governance.approvalNotes = notes || "Production promotion granted.";
+        model.governance.complianceAttestation = true;
+      }
     } else if (newState === "APPROVED") {
       if (actorRole !== "ADMIN" && actorRole !== "SME_ADMIN") {
         throw new Error("Governance policy violation: Only ADMIN or SME_ADMIN can approve a model.");
       }
       model.lifecycleState = "APPROVED";
+      model.status = "APPROVED";
       model.governance = {
         ...model.governance,
         approvedBy: actorRole,
@@ -225,10 +327,32 @@ export class MultiTenantModelRegistry {
         approvalNotes: notes || "Formal governance approval granted.",
         complianceAttestation: true,
       };
+    } else if (newState === "CANDIDATE") {
+      if (model.lifecycleState !== "VALIDATED" && model.lifecycleState !== "EXPERIMENTAL") {
+        throw new Error("Candidate violation: Model must be VALIDATED before being marked as CANDIDATE.");
+      }
+      model.lifecycleState = "CANDIDATE";
+      model.status = "CANDIDATE";
+    } else if (newState === "VALIDATED") {
+      const eligibility = ModelPromotionGate.evaluateForValidation(model);
+      if (!eligibility.eligible) {
+        throw new Error(
+          `Model Promotion Violation: Model '${modelId}' failed the statistical validation gate. Blockers: ${eligibility.blockers.join(" | ")}`
+        );
+      }
+      model.lifecycleState = "VALIDATED";
+      model.status = "VALIDATED";
+    } else if (newState === "BLOCKED" || newState === "RETIRED") {
+      model.lifecycleState = newState;
+      model.status = newState;
+      model.isProductionDeployed = false;
+      model.deploymentStatus = "UNDEPLOYED";
     } else {
       model.lifecycleState = newState;
+      model.status = newState;
     }
 
+    this.saveToDisk();
     return model;
   }
 
@@ -290,7 +414,11 @@ export class MultiTenantModelRegistry {
     if (!orgMap) return null;
 
     for (const model of orgMap.values()) {
-      if (model.targetId === targetId && model.isProductionDeployed && model.lifecycleState === "DEPLOYED") {
+      if (
+        model.targetId === targetId &&
+        model.isProductionDeployed &&
+        (model.lifecycleState === "DEPLOYED" || model.lifecycleState === "PRODUCTION")
+      ) {
         return model;
       }
     }

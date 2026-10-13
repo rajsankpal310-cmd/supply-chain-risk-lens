@@ -129,7 +129,7 @@ export function LoginPage() {
               }}
               className="rounded-lg border border-border/80 bg-background/70 p-2.5 text-left hover:border-primary/60 hover:bg-accent/40 transition-colors"
             >
-              <p className="font-semibold text-foreground text-xs">Credit Analyst</p>
+              <p className="font-semibold text-foreground text-xs">Risk Analyst</p>
               <p className="text-[10px] text-primary font-medium mt-0.5">Risk & Simulations</p>
               <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
                 Investigate financial contagion, shock scenarios, and optimizations.
@@ -145,7 +145,7 @@ export function LoginPage() {
               }}
               className="rounded-lg border border-border/80 bg-background/70 p-2.5 text-left hover:border-primary/60 hover:bg-accent/40 transition-colors"
             >
-              <p className="font-semibold text-foreground text-xs">Executive Viewer</p>
+              <p className="font-semibold text-foreground text-xs">Executive</p>
               <p className="text-[10px] text-primary font-medium mt-0.5">Read-Only Monitoring</p>
               <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
                 Monitor portfolio resilience, risk bands, and audit reports.

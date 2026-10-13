@@ -108,4 +108,64 @@ export const authService = {
     sessionStore.write(next);
     return next;
   },
+
+  async getTeamUsers(): Promise<User[]> {
+    if (!USE_MOCK_API) {
+      return apiClient.get<User[]>(ENDPOINTS.teamUsers);
+    }
+    await mockDelay(300);
+    const currentUser = sessionStore.read() ?? demoUser;
+    return [
+      currentUser,
+      {
+        ...demoUser,
+        id: "USR-ANALYST-01",
+        email: "analyst@nexus-cfr.demo",
+        fullName: "Rahul Varma",
+        role: "ANALYST",
+        avatarInitials: "RV",
+      },
+      {
+        ...demoUser,
+        id: "USR-VIEWER-01",
+        email: "viewer@nexus-cfr.demo",
+        fullName: "Priya Nair",
+        role: "VIEWER",
+        avatarInitials: "PN",
+      },
+    ];
+  },
+
+  async createTeamUser(input: {
+    fullName: string;
+    email: string;
+    password: string;
+    role: "ANALYST" | "VIEWER";
+  }): Promise<User> {
+    if (!USE_MOCK_API) {
+      return apiClient.post<User>(ENDPOINTS.teamUsers, input);
+    }
+    await mockDelay(400);
+    const newUser: User = {
+      ...demoUser,
+      id: `USR-${Date.now()}`,
+      fullName: input.fullName,
+      email: input.email,
+      role: input.role,
+      avatarInitials: input.fullName
+        .split(" ")
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase(),
+    };
+    return newUser;
+  },
+
+  async removeTeamUser(userId: string): Promise<void> {
+    if (!USE_MOCK_API) {
+      return apiClient.delete<void>(ENDPOINTS.teamUser(userId));
+    }
+    await mockDelay(300);
+  },
 };

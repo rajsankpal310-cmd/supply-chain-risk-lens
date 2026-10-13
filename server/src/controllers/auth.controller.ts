@@ -31,4 +31,40 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async listUsers(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const users = await AuthService.getOrganizationUsers(req.user!.organizationId);
+      return sendSuccess(res, users);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createTeamUser(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { fullName, email, password, role } = req.body;
+      const user = await AuthService.createTeamUser(
+        {
+          id: req.user!.id,
+          organizationId: req.user!.organizationId,
+          companyName: req.user!.companyName,
+        },
+        { fullName, email, password, role }
+      );
+      return sendSuccess(res, user, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteTeamUser(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const id = String(req.params.id);
+      const result = await AuthService.removeTeamUser(req.user!.id, req.user!.organizationId, id);
+      return sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

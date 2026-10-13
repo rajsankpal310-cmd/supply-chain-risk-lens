@@ -63,7 +63,7 @@ export function TransactionsPage() {
     mutationFn: (id: string) => transactionService.deleteTransaction(id),
     onSuccess: () => {
       toast.success("Transaction deleted");
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries();
     },
     onError: () => toast.error("Could not delete the transaction"),
   });
@@ -91,8 +91,41 @@ export function TransactionsPage() {
         </div>
       ),
     },
-    { key: "buyerId", header: "Buyer", sortable: true, render: (t) => <span className="font-medium">{firmName(t.buyerId)}</span> },
-    { key: "supplierId", header: "Supplier", render: (t) => firmName(t.supplierId) },
+    {
+      key: "buyerId",
+      header: "Buyer",
+      sortable: true,
+      render: (t) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (t.buyerId) navigate({ to: "/app/network", search: { firmId: t.buyerId } as any });
+          }}
+          className="font-medium text-left hover:text-primary hover:underline transition-colors cursor-pointer text-foreground"
+          title={`View ${firmName(t.buyerId)} in Supply Chain Network`}
+        >
+          {firmName(t.buyerId)}
+        </button>
+      ),
+    },
+    {
+      key: "supplierId",
+      header: "Supplier",
+      render: (t) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (t.supplierId) navigate({ to: "/app/network", search: { firmId: t.supplierId } as any });
+          }}
+          className="text-left hover:text-primary hover:underline transition-colors cursor-pointer text-muted-foreground"
+          title={`View ${firmName(t.supplierId)} in Supply Chain Network`}
+        >
+          {firmName(t.supplierId)}
+        </button>
+      ),
+    },
     { key: "invoiceAmount", header: "Amount", sortable: true, align: "right", render: (t) => <span className="font-mono">{formatINR(t.invoiceAmount)}</span> },
     { key: "invoiceDate", header: "Invoice date", sortable: true, render: (t) => formatDate(t.invoiceDate) },
     { key: "dueDate", header: "Due date", sortable: true, render: (t) => formatDate(t.dueDate) },
@@ -114,11 +147,12 @@ export function TransactionsPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="View in Supply Chain Network"
+            title="Focus company in Supply Chain Network"
             aria-label={`View ${t.id} in Network`}
             onClick={(e) => {
               e.stopPropagation();
-              navigate({ to: "/app/network" });
+              const firmId = t.supplierId || t.buyerId;
+              navigate({ to: "/app/network", search: firmId ? ({ firmId } as any) : undefined });
             }}
           >
             <Network className="size-4 text-primary" />

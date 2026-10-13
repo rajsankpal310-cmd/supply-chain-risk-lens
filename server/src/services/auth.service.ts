@@ -150,4 +150,63 @@ export class AuthService {
       organizationName,
     };
   }
+
+  static async getOrganizationUsers(organizationId: string) {
+    return UserRepository.findByOrganization(organizationId);
+  }
+
+  static async createTeamUser(
+    adminUser: { id: string; organizationId: string; companyName: string },
+    data: { fullName: string; email: string; password: string; role: "ANALYST" | "VIEWER" }
+  ) {
+    const existing = await UserRepository.findByEmail(data.email);
+    if (existing) {
+      throw { status: 400, message: "A user with this email already exists." };
+    }
+
+    if (!["ANALYST", "VIEWER"].includes(data.role)) {
+      throw { status: 400, message: "Invalid role. SME Admins can assign Risk Analyst or Executive roles." };
+    }
+
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const initials = data.fullName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    const created = await UserRepository.create({
+      fullName: data.fullName,
+      email: data.email,
+      passwordHash,
+      companyName: adminUser.companyName,
+      industry: "Enterprise",
+      companySize: "11-50",
+      role: data.role,
+      avatarInitials: initials,
+      organizationId: adminUser.organizationId,
+    });
+
+    return {
+      id: created.id,
+      fullName: created.fullName,
+      email: created.email,
+      role: created.role,
+      avatarInitials: created.avatarInitials,
+      createdAt: created.createdAt,
+    };
+  }
+
+  static async removeTeamUser(adminUserId: string, organizationId: string, targetUserId: string) {
+    if (adminUserId === targetUserId) {
+      throw { status: 400, message: "Administrators cannot remove their own account." };
+    }
+
+    const deleted = await UserRepository.deleteByIdAndOrg(targetUserId, organizationId);
+    if (deleted.count === 0) {
+      throw { status: 404, message: "User not found in your organization." };
+    }
+    return { success: true };
+  }
 }

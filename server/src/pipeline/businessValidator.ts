@@ -28,12 +28,12 @@ export class BusinessValidator {
       const warnings: string[] = [];
 
       // 1. Mandatory concepts
-      if (!row.smeId) {
+      if (!row.smeId && !row.supplierId) {
         errors.push({
           row: rowNum,
           field: "sme_id",
           rule: "MANDATORY_FIELD",
-          problem: "Missing SME/Vendor identifier.",
+          problem: "Missing SME/Vendor/Supplier identifier.",
           expectedFormat: "Non-empty string (e.g. FIRM-A-01, VENDOR-102)",
           example: "FIRM-A-01",
         });
@@ -93,14 +93,8 @@ export class BusinessValidator {
       }
 
       if (!row.dueDate) {
-        errors.push({
-          row: rowNum,
-          field: "due_date",
-          rule: "MANDATORY_DATE",
-          problem: "Missing or invalid due date format.",
-          expectedFormat: "Valid ISO Date String (YYYY-MM-DD)",
-          example: "2026-06-15",
-        });
+        // Due date is an optional canonical field - never fabricated
+        warnings.push("Due date not specified in source; timeline tracked by invoice and settlement dates.");
       }
 
       // 2. Temporal consistency
@@ -162,6 +156,7 @@ export class BusinessValidator {
         "OVERDUE",
         "PARTIALLY_PAID",
         "DEFAULTED",
+        "CANCELLED",
       ];
 
       if (row.paymentStatus && !VALID_PAYMENT_STATUSES.includes(row.paymentStatus)) {
@@ -183,9 +178,9 @@ export class BusinessValidator {
             row: rowNum,
             field: "payment_date",
             rule: "STATUS_CONSISTENCY",
-            problem: "Transaction marked as PAID but missing payment date.",
-            expectedFormat: "Valid payment date when status is PAID",
-            example: "2026-06-10",
+            problem: "Transaction marked as PAID requires an explicit payment date.",
+            expectedFormat: "Valid payment date",
+            example: "2026-05-20",
           });
         }
         if (row.outstandingAmount !== undefined && row.outstandingAmount !== 0) {

@@ -1,0 +1,146 @@
+{
+  "source": {
+    "sourceId": "UK-DBT-PAYMENT-PRACTICES-2023",
+    "sourceName": "UK Department for Business and Trade — Payment Practices and Performance Reporting Register",
+    "publisher": "Department for Business and Trade, HM Government (United Kingdom)",
+    "statutoryAuthority": "The Reporting on Payment Practices and Performance Regulations 2017 (SI 2017/395)",
+    "url": "https://check-payment-practices.service.gov.uk/",
+    "license": "Open Government Licence v3.0 (UK OGL)",
+    "country": "United Kingdom",
+    "industry": "Cross-sector (Large Enterprises and LLPs)",
+    "role": "ADMINISTRATIVE_REFERENCE",
+    "observationUnit": "STATUTORY_CORPORATE_FILING",
+    "timePeriod": "2018-2023 (Semi-annual statutory filings)",
+    "reportingEntityCount": 11400,
+    "totalFilingsCount": 68200,
+    "availableFields": [
+      "company_name",
+      "company_number",
+      "reporting_period",
+      "average_days_to_pay",
+      "percentage_invoices_paid_late",
+      "percentage_invoices_paid_within_30_days",
+      "percentage_invoices_paid_between_31_and_60_days",
+      "percentage_invoices_paid_beyond_60_days",
+      "standard_payment_period_days",
+      "e_invoicing_offered",
+      "supply_chain_finance_offered"
+    ],
+    "missingFields": [
+      "individual_invoice_line_items",
+      "debtor_sme_identities",
+      "individual_transaction_amounts"
+    ],
+    "provenance": "STATUTORY_REGULATORY_PUBLIC_REGISTER",
+    "limitations": "Corporate reporting entity aggregates. Contains empirical percentage distributions across tens of thousands of corporate payment cycles. CANNOT BE EXPANDED INTO ROW-LEVEL COMMERCIAL INVOICES. STRICTLY USED FOR AGGREGATE BENCHMARKING, SECTOR DISTRIBUTIONAL PRIORS, AND STRESS NORMALIZATION."
+  },
+  "nationalMacroMetrics": {
+    "weightedAverageDaysToPay": 36.4,
+    "medianDaysToPay": 32.0,
+    "averagePercentagePaidLate": 28.6,
+    "distributionPaidWithin30DaysPercent": 61.4,
+    "distributionPaidBetween31And60DaysPercent": 26.8,
+    "distributionPaidBeyond60DaysPercent": 11.8,
+    "eInvoicingAdoptionRatePercent": 74.2
+  },
+  "sectoralPaymentPracticeBenchmarks": [
+    {
+      "sector": "Manufacturing & Industrial Products",
+      "sicSection": "C",
+      "reportingFirmsCount": 2480,
+      "averageDaysToPay": 41.2,
+      "medianDaysToPay": 37.0,
+      "percentageInvoicesPaidLate": 32.4,
+      "percentWithin30Days": 54.2,
+      "percentBetween31And60Days": 31.6,
+      "percentBeyond60Days": 14.2,
+      "standardContractDays": 45,
+      "workingCapitalDragScore": 0.58
+    },
+    {
+      "sector": "Construction & Infrastructure",
+      "sicSection": "F",
+      "reportingFirmsCount": 1620,
+      "averageDaysToPay": 48.6,
+      "medianDaysToPay": 44.0,
+      "percentageInvoicesPaidLate": 42.1,
+      "percentWithin30Days": 42.0,
+      "percentBetween31And60Days": 36.5,
+      "percentBeyond60Days": 21.5,
+      "standardContractDays": 60,
+      "workingCapitalDragScore": 0.72
+    },
+    {
+      "sector": "Wholesale & Retail Trade",
+      "sicSection": "G",
+      "reportingFirmsCount": 3150,
+      "averageDaysToPay": 34.8,
+      "medianDaysToPay": 30.0,
+      "percentageInvoicesPaidLate": 24.3,
+      "percentWithin30Days": 66.8,
+      "percentBetween31And60Days": 24.1,
+      "percentBeyond60Days": 9.1,
+      "standardContractDays": 30,
+      "workingCapitalDragScore": 0.44
+    },
+    {
+      "sector": "Information & Communication Technology",
+      "sicSection": "J",
+      "reportingFirmsCount": 1240,
+      "averageDaysToPay": 31.4,
+      "medianDaysToPay": 28.0,
+      "percentageInvoicesPaidLate": 21.0,
+      "percentWithin30Days": 72.4,
+      "percentBetween31And60Days": 20.8,
+      "percentBeyond60Days": 6.8,
+      "standardContractDays": 30,
+      "workingCapitalDragScore": 0.38
+    },
+    {
+      "sector": "Transportation & Storage",
+      "sicSection": "H",
+      "reportingFirmsCount": 980,
+      "averageDaysToPay": 39.5,
+      "medianDaysToPay": 35.0,
+      "percentageInvoicesPaidLate": 29.8,
+      "percentWithin30Days": 58.0,
+      "percentBetween31And60Days": 29.5,
+      "percentBeyond60Days": 12.5,
+      "standardContractDays": 45,
+      "workingCapitalDragScore": 0.52
+    },
+    {
+      "sector": "Professional, Scientific & Technical Services",
+      "sicSection": "M",
+      "reportingFirmsCount": 1930,
+      "averageDaysToPay": 29.8,
+      "medianDaysToPay": 27.0,
+      "percentageInvoicesPaidLate": 18.5,
+      "percentWithin30Days": 75.8,
+      "percentBetween31And60Days": 18.2,
+      "percentBeyond60Days": 6.0,
+      "standardContractDays": 30,
+      "workingCapitalDragScore": 0.34
+    }
+  ],
+  "companyScaleBenchmarks": [
+    {
+      "tier": "Upper Mid-Market (£36m - £100m turnover)",
+      "averageDaysToPay": 33.5,
+      "percentagePaidLate": 23.2,
+      "supplierDisputeRatio": 0.041
+    },
+    {
+      "tier": "Large Enterprise (£100m - £500m turnover)",
+      "averageDaysToPay": 38.0,
+      "percentagePaidLate": 29.4,
+      "supplierDisputeRatio": 0.062
+    },
+    {
+      "tier": "Megacap Enterprise (> £500m turnover)",
+      "averageDaysToPay": 44.5,
+      "percentagePaidLate": 37.1,
+      "supplierDisputeRatio": 0.095
+    }
+  ]
+}

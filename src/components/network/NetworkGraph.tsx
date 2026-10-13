@@ -151,9 +151,12 @@ export function NetworkGraph({
                 opacity={dim ? 0.35 : 1}
               >
                 {(selectedId === n.id || highlightPath.includes(n.id)) && (
-                  <circle r={r + 8} fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeDasharray="4 3" />
+                  <>
+                    <circle r={r + 14} fill="var(--color-primary)" fillOpacity={0.2} className="animate-pulse" />
+                    <circle r={r + 7} fill="none" stroke="var(--color-primary)" strokeWidth={2.5} strokeDasharray={selectedId === n.id ? undefined : "4 3"} />
+                  </>
                 )}
-                <circle r={r} fill={fillFor(n)} fillOpacity={0.85} stroke="var(--color-background)" strokeWidth={2} />
+                <circle r={r} fill={fillFor(n)} fillOpacity={0.9} stroke="var(--color-background)" strokeWidth={selectedId === n.id ? 3 : 2} />
                 {(selectedId === n.id || r > 22) && (
                   <text y={r + 14} textAnchor="middle" fontSize={11} fill="var(--color-foreground)" className="pointer-events-none font-medium">
                     {n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name}

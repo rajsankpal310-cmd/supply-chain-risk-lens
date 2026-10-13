@@ -26,14 +26,19 @@ export function DashboardPage() {
   const alertList = alerts.data ?? [];
   const role = user?.role || "VIEWER";
 
+  const handleRefresh = () => {
+    summary.refetch();
+    alerts.refetch();
+  };
+
   if (role === "SME_ADMIN") {
     return (
       <SmeAdminDashboard
         data={data}
         alerts={alertList}
         user={user}
-        onRefresh={() => summary.refetch()}
-        isFetching={summary.isFetching}
+        onRefresh={handleRefresh}
+        isFetching={summary.isFetching || alerts.isFetching}
       />
     );
   }
@@ -43,8 +48,8 @@ export function DashboardPage() {
       <AnalystDashboard
         data={data}
         user={user}
-        onRefresh={() => summary.refetch()}
-        isFetching={summary.isFetching}
+        onRefresh={handleRefresh}
+        isFetching={summary.isFetching || alerts.isFetching}
       />
     );
   }
@@ -55,8 +60,8 @@ export function DashboardPage() {
       data={data}
       alerts={alertList}
       user={user}
-      onRefresh={() => summary.refetch()}
-      isFetching={summary.isFetching}
+      onRefresh={handleRefresh}
+      isFetching={summary.isFetching || alerts.isFetching}
     />
   );
 }

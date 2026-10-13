@@ -14,14 +14,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { recommendationService } from "@/services/decisionServices";
+import { OptimizationPage } from "@/components/pages/OptimizationPage";
 import type { Recommendation, RiskLevel } from "@/types";
 import { formatINR } from "@/utils/format";
 
 const PRIORITIES: (RiskLevel | "ALL")[] = ["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const STATUSES = ["ALL", "OPEN", "ACCEPTED", "DISMISSED"] as const;
 
-export function RecommendationsPage() {
+export function RecommendationsPage({
+  initialTab = "recommendations",
+}: {
+  initialTab?: "recommendations" | "optimization";
+} = {}) {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"recommendations" | "optimization">(initialTab);
   const [search, setSearch] = useState("");
   const [priority, setPriority] = useState<RiskLevel | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -81,7 +87,30 @@ export function RecommendationsPage() {
         }
       />
 
-      <Card className="gap-4 p-4">
+      <div className="flex items-center gap-2 border-b pb-3">
+        <Button
+          variant={activeTab === "recommendations" ? "default" : "outline"}
+          size="sm"
+          className="text-xs font-semibold"
+          onClick={() => setActiveTab("recommendations")}
+        >
+          Actionable Recommendations
+        </Button>
+        <Button
+          variant={activeTab === "optimization" ? "default" : "outline"}
+          size="sm"
+          className="text-xs font-semibold"
+          onClick={() => setActiveTab("optimization")}
+        >
+          Smart Budget Allocation
+        </Button>
+      </div>
+
+      {activeTab === "optimization" ? (
+        <OptimizationPage embedded={true} />
+      ) : (
+        <>
+          <Card className="gap-4 p-4">
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label htmlFor="rec-search" className="text-muted-foreground mb-1 block text-xs">Search</Label>
@@ -195,6 +224,8 @@ export function RecommendationsPage() {
             </Card>
           ))}
         </div>
+      )}
+      </>
       )}
 
       {/* Decision Support Confirmation Dialog */}

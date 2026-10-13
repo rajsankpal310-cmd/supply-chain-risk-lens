@@ -39,6 +39,7 @@ import { SystemGuideModal } from "@/components/common/SystemGuideModal";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,20 +48,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import { alertService } from "@/services/decisionServices";
 import { cn } from "@/lib/utils";
 import * as db from "@/mocks/data";
 import type { UserRole } from "@/types";
 
-const NAV_GROUPS = [
+export function getRoleLabel(role?: string): string {
+  if (role === "SME_ADMIN") return "SME Admin";
+  if (role === "ANALYST") return "Risk Analyst";
+  if (role === "VIEWER") return "Executive";
+  return role ? role.replace("_", " ") : "User";
+}
+
+const SME_ADMIN_NAV = [
   {
     label: "Overview",
     items: [{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    label: "Data",
+    label: "Data Operations",
     items: [
       { to: "/app/transactions", label: "Transactions", icon: Table2 },
       { to: "/app/upload", label: "Upload Data", icon: Upload },
@@ -69,7 +78,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Intelligence",
+    label: "Risk & Exposure",
     items: [
       { to: "/app/risk", label: "Portfolio Risk", icon: Gauge },
       { to: "/app/predictions", label: "Predictions", icon: TrendingUp },
@@ -77,53 +86,107 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Simulation",
+    label: "Decisions & Actions",
     items: [
+      { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
       { to: "/app/simulator", label: "Scenario Simulator", icon: Activity },
+    ],
+  },
+  {
+    label: "Monitoring",
+    items: [
+      { to: "/app/alerts", label: "Alerts", icon: Bell },
+      { to: "/app/reports", label: "Reports", icon: FileText },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [{ to: "/app/settings", label: "Settings & Team", icon: Settings }],
+  },
+] as const;
+
+const ANALYST_NAV = [
+  {
+    label: "Overview",
+    items: [{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Data",
+    items: [
+      { to: "/app/transactions", label: "Transactions", icon: Table2 },
+      { to: "/app/firms", label: "Firms", icon: Building2 },
+      { to: "/app/relationships", label: "Relationships", icon: Share2 },
+    ],
+  },
+  {
+    label: "Risk Analysis",
+    items: [
+      { to: "/app/risk", label: "Portfolio Risk", icon: Gauge },
+      { to: "/app/predictions", label: "Predictions", icon: TrendingUp },
+      { to: "/app/network", label: "Supply Chain Network", icon: Network },
       { to: "/app/deadlocks", label: "Financial Deadlock", icon: GitBranch },
-      { to: "/app/simulations", label: "Simulation History", icon: History },
     ],
   },
   {
     label: "Decision Support",
     items: [
       { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
-      { to: "/app/optimization", label: "Optimization", icon: Sliders },
+      { to: "/app/simulator", label: "Scenario Simulator", icon: Activity },
     ],
   },
   {
-    label: "Reports",
+    label: "Monitoring",
     items: [
-      { to: "/app/reports", label: "Reports", icon: FileText },
       { to: "/app/alerts", label: "Alerts", icon: Bell },
+      { to: "/app/reports", label: "Reports", icon: FileText },
+    ],
+  },
+] as const;
+
+const VIEWER_NAV = [
+  {
+    label: "Overview",
+    items: [{ to: "/app/dashboard", label: "Executive Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Portfolio & Network",
+    items: [
+      { to: "/app/risk", label: "Portfolio Risk", icon: Gauge },
+      { to: "/app/network", label: "Supply Chain Network", icon: Network },
     ],
   },
   {
-    label: "System",
-    items: [{ to: "/app/settings", label: "Settings", icon: Settings }],
+    label: "Actions & Monitoring",
+    items: [
+      { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
+      { to: "/app/alerts", label: "Alerts", icon: Bell },
+      { to: "/app/reports", label: "Reports", icon: FileText },
+    ],
   },
 ] as const;
 
 function canRoleAccess(role: UserRole | undefined, path: string): boolean {
-  if (!role || role === "SME_ADMIN") return true;
+  if (!role || role === "SME_ADMIN") {
+    // SME Admin has full operational access
+    return true;
+  }
   if (role === "ANALYST") {
+    // Analyst cannot manage uploads or organization settings
     if (path === "/app/upload" || path === "/app/settings") return false;
     return true;
   }
   if (role === "VIEWER") {
+    // Executive viewer has read-only executive visibility
     const allowed = [
       "/app/dashboard",
-      "/app/transactions",
-      "/app/firms",
-      "/app/relationships",
       "/app/risk",
-      "/app/predictions",
       "/app/network",
-      "/app/reports",
+      "/app/recommendations",
       "/app/alerts",
+      "/app/reports",
       "/app/profile",
     ];
-    return allowed.includes(path);
+    return allowed.some((prefix) => path.startsWith(prefix));
   }
   return true;
 }
@@ -139,12 +202,12 @@ const TITLES: Record<string, string> = {
   "/app/network": "Supply Chain Network",
   "/app/simulator": "Scenario Simulator",
   "/app/deadlocks": "Financial Deadlock",
-  "/app/simulations": "Simulation History",
-  "/app/recommendations": "Recommendations",
-  "/app/optimization": "Optimization",
+  "/app/simulations": "Scenario Simulator",
+  "/app/recommendations": "Recommendations & Budget",
+  "/app/optimization": "Smart Budget Allocation",
   "/app/reports": "Reports",
   "/app/alerts": "Alerts",
-  "/app/settings": "Settings",
+  "/app/settings": "Settings & Team",
   "/app/profile": "Profile",
 };
 
@@ -161,12 +224,18 @@ export function AppLayout() {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
+  const activeNavGroups = useMemo(() => {
+    if (user?.role === "ANALYST") return ANALYST_NAV;
+    if (user?.role === "VIEWER") return VIEWER_NAV;
+    return SME_ADMIN_NAV;
+  }, [user?.role]);
+
   const filteredNavGroups = useMemo(() => {
-    return NAV_GROUPS.map((group) => ({
+    return activeNavGroups.map((group) => ({
       ...group,
       items: group.items.filter((item) => canRoleAccess(user?.role, item.to)),
     })).filter((group) => group.items.length > 0);
-  }, [user?.role]);
+  }, [activeNavGroups, user?.role]);
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -186,9 +255,14 @@ export function AppLayout() {
     return [...firms, ...txns, ...alerts];
   }, [query]);
 
-  const unread = db.alerts.filter((a) => !a.read).length;
+  const alertsQuery = useQuery({
+    queryKey: ["alerts"],
+    queryFn: alertService.getAlerts,
+    staleTime: 30000,
+  });
+  const unread = alertsQuery.data ? alertsQuery.data.filter((a) => !a.read && !a.archived).length : 0;
   const title = TITLES[location.pathname] ?? "NEXUS-CFR";
-  const crumbGroup = NAV_GROUPS.find((g) => g.items.some((i) => location.pathname.startsWith(i.to)))?.label ?? "Overview";
+  const crumbGroup = activeNavGroups.find((g) => g.items.some((i) => location.pathname.startsWith(i.to)))?.label ?? "Overview";
 
   async function handleLogout() {
     await logout();
@@ -245,7 +319,7 @@ export function AppLayout() {
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.fullName}</p>
-              <p className="text-muted-foreground truncate text-[11px]">{user?.role.replace("_", " ")}</p>
+              <p className="text-muted-foreground truncate text-[11px]">{getRoleLabel(user?.role)}</p>
             </div>
           )}
         </Link>
@@ -310,7 +384,24 @@ export function AppLayout() {
             )}
           </div>
 
-          <DemoDataBadge className="hidden xl:inline-flex" />
+          {/* Data Environment / Demo Mode Indicator */}
+          {user?.organizationId === "ORG-001" || user?.email?.includes("demo") ? (
+            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/35 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300">
+              <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
+              <span className="font-semibold text-[11px]">Demo Mode • Sample Data</span>
+            </div>
+          ) : user?.organizationName && user.organizationName !== "Operational Workspace" ? (
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/25 bg-primary/5 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              <span className="font-medium text-foreground text-[11px]">Organization:</span>
+              <span className="text-[11px] truncate max-w-40">{user.organizationName}</span>
+            </div>
+          ) : (
+            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
+              <span className="size-1.5 rounded-full bg-amber-500" />
+              <span className="font-medium text-[11px]">Waiting for Your Data</span>
+            </div>
+          )}
 
           {/* Help & System Tour Dropdown */}
           <DropdownMenu>
@@ -379,7 +470,7 @@ export function AppLayout() {
               <div className="px-2 py-1 flex items-center justify-between">
                 <span className="text-muted-foreground text-[11px] uppercase font-semibold">Assigned Role</span>
                 <Badge variant="secondary" className="font-mono text-[10px] tracking-wide">
-                  {user?.role.replace("_", " ")}
+                  {getRoleLabel(user?.role)}
                 </Badge>
               </div>
               <DropdownMenuSeparator />

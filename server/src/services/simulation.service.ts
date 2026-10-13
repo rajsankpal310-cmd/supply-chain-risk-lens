@@ -88,7 +88,14 @@ export class SimulationService {
     const recoveryDays = Math.round(((input.durationDays || 90) * (100 - (input.recoveryRate || 45))) / 45) + 14;
 
     const resultPayload = {
+      scenarioLabel: "HYPOTHETICAL / SCENARIO OUTPUT",
+      disclaimer: "This is a modelled scenario simulation, not observed historical fact. Never feed simulated cascade outputs backward into ML training.",
       affectedFirms,
+      affectedNodeCount: affectedFirms.length,
+      networkExposure: expectedLoss,
+      downstreamImpact: Math.round(expectedLoss * 1.45),
+      propagatedRisk: cascadeProbability,
+      cascadeSeverity: input.severity || "HIGH",
       potentialDefaults,
       cascadeProbability,
       expectedLoss,

@@ -33,6 +33,7 @@ export function RiskPage() {
 
   const risk = overviewQuery.data;
   const summary = summaryQuery.data;
+  const isEmptyOrg = Boolean(risk?.isEmpty || risk?.overall === null || (summary?.executiveSummary?.totalFirmsCount ?? 0) === 0);
 
   const firmColumns: Column<TopFirmRow>[] = [
     {
@@ -50,6 +51,99 @@ export function RiskPage() {
     { key: "risk", header: "Risk Level", align: "right", render: (r) => <RiskBadge level={r.riskLevel} score={r.riskScore} /> },
   ];
 
+  if (isEmptyOrg) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Risk Intelligence Overview"
+          description="Comprehensive portfolio-level risk analysis, stress scoring, risk categories, and underlying risk drivers."
+          showDemoBadge={false}
+          actions={
+            <Button variant="outline" onClick={() => { overviewQuery.refetch(); summaryQuery.refetch(); }}>
+              <RefreshCw className={overviewQuery.isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
+              Refresh Analysis
+            </Button>
+          }
+        />
+
+        {/* Empty Organization Onboarding Card */}
+        <Card className="p-8 text-center max-w-2xl mx-auto space-y-4 border-dashed border-border/80">
+          <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary mx-auto">
+            <Gauge className="size-6" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Waiting for Your Data</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto leading-relaxed">
+              Upload your company transaction data to generate portfolio risk analysis,
+              counterparty delay probabilities, and supply-chain cascade scores.
+            </p>
+          </div>
+          <div className="pt-1">
+            <Button asChild size="sm">
+              <Link to="/app/upload">Upload Company Data</Link>
+            </Button>
+          </div>
+        </Card>
+
+        {/* Empty Metric Cards */}
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Overall Risk Score"
+            value="—"
+            status="LOW"
+            tooltip="Portfolio-wide composite risk score will be computed once transaction data is uploaded"
+          />
+          <MetricCard
+            label="Payment Risk"
+            value="—"
+            status="LOW"
+            tooltip="Late settlement behaviour across buyers"
+          />
+          <MetricCard
+            label="Financial Stress"
+            value="—"
+            status="LOW"
+            tooltip="Working-capital pressure on SMEs"
+          />
+          <MetricCard
+            label="Dependency Risk"
+            value="—"
+            status="LOW"
+            tooltip="Concentration on key buyers or suppliers"
+          />
+        </section>
+
+        {/* Empty Categories & Charts */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          <Card className="p-5 flex flex-col justify-center items-center text-center py-12">
+            <Gauge className="size-8 text-muted-foreground/40 mb-2" />
+            <h4 className="text-xs font-semibold text-foreground">No Risk Categories Available</h4>
+            <p className="text-[11px] text-muted-foreground max-w-xs mt-0.5">
+              Category breakdowns for payment, stress, dependency, and cascade risk will appear after transactions are imported.
+            </p>
+          </Card>
+
+          <Card className="p-5 flex flex-col justify-center items-center text-center py-12">
+            <TrendingUp className="size-8 text-muted-foreground/40 mb-2" />
+            <h4 className="text-xs font-semibold text-foreground">No Risk History Available Yet</h4>
+            <p className="text-[11px] text-muted-foreground max-w-xs mt-0.5">
+              Your historical risk trend will appear after sufficient company data is imported.
+            </p>
+          </Card>
+        </section>
+
+        {/* Empty Drivers */}
+        <Card className="p-5 text-center py-10">
+          <ShieldAlert className="size-8 text-muted-foreground/40 mx-auto mb-2" />
+          <h4 className="text-xs font-semibold text-foreground">No Risk Drivers Detected Yet</h4>
+          <p className="text-[11px] text-muted-foreground max-w-sm mx-auto mt-0.5">
+            Key contributing factors to your portfolio risk index will be calculated from uploaded transaction ledgers.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -63,21 +157,21 @@ export function RiskPage() {
         }
       />
 
-      {/* Methodology & Model Transparency Banner */}
+      {/* Methodology Transparency Banner */}
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
           <Info className="size-5 text-primary shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <h4 className="text-sm font-semibold text-foreground">
-              Methodology Transparency: Calculated Risk Indicators
+              Risk Calculation Methodology
             </h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              All metrics below are deterministic calculated risk indices derived from invoice ageing distributions, counterparty payment delay histories, and graph network exposure. Machine Learning (ML) predictive modeling is scheduled for Phase 2/3.
+              Portfolio metrics are derived from transaction ageing distributions, counterparty payment delay histories, and supply chain network exposure topology.
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="border-primary/40 text-primary font-mono text-[10px] shrink-0">
-          Rule Engine v1.5
+        <Badge variant="outline" className="border-primary/40 text-primary text-xs shrink-0">
+          Analytical Engine
         </Badge>
       </div>
 

@@ -25,14 +25,32 @@ app.use(
 );
 
 app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "250mb" }));
+app.use(express.urlencoded({ extended: true, limit: "250mb" }));
 
 // Health Check Endpoint
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    status: "healthy",
+app.get("/health", async (_req, res) => {
+  let dbStatus = "disconnected";
+  let dbDetails: { version?: string; database?: string; provider?: string } | null = null;
+  try {
+    const { prisma } = await import("./config/database");
+    const rawRes: any = await prisma.$queryRawUnsafe("SELECT version(), current_database();");
+    dbStatus = "connected";
+    dbDetails = {
+      version: rawRes[0]?.version,
+      database: rawRes[0]?.current_database,
+      provider: "Supabase PostgreSQL",
+    };
+  } catch (_e) {
+    dbStatus = "error";
+  }
+
+  const isHealthy = dbStatus === "connected";
+  res.status(isHealthy ? 200 : 503).json({
+    success: isHealthy,
+    status: isHealthy ? "healthy" : "degraded",
+    database: dbStatus,
+    dbDetails,
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
   });

@@ -5,15 +5,16 @@ import { sendError, sendPaginated, sendSuccess } from "../utils/response";
 export class UploadController {
   static async inspectSchema(req: Request, res: Response, next: NextFunction) {
     try {
-      const { headers, rows } = req.body;
+      const { headers, rows, mapping, userOverrides } = req.body;
       const targetRows = rows || [];
       const targetHeaders = headers || (targetRows.length > 0 ? Object.keys(targetRows[0]) : []);
+      const overrides = userOverrides || mapping || {};
 
       if (targetRows.length === 0 && targetHeaders.length === 0) {
         return sendError(res, "No headers or rows provided for schema inspection.", 400, "BAD_REQUEST");
       }
 
-      const result = UploadService.inspectSchema(targetHeaders, targetRows);
+      const result = UploadService.inspectSchema(targetHeaders, targetRows, overrides);
       return sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -35,7 +36,14 @@ export class UploadController {
       }
 
       const result = await UploadService.validateDataset(organizationId, targetRows, mapping || {});
-      return sendSuccess(res, result);
+      const safeRowResults = result.rowResults.length > 500
+        ? result.rowResults.slice(0, 500)
+        : result.rowResults;
+
+      return sendSuccess(res, {
+        scorecard: result.scorecard,
+        rowResults: safeRowResults,
+      });
     } catch (error) {
       next(error);
     }
@@ -83,6 +91,7 @@ export class UploadController {
         dataGranularity: dataGranularity || "TRANSACTION_LEVEL",
         sourceDate: sourceDate || null,
         importedBy: userId,
+        fileSize: req.body?.fileSize || null,
       };
 
       const result = await UploadService.importTransactions(

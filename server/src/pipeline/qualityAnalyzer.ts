@@ -5,7 +5,9 @@ export interface QualityScorecard {
   totalRecords: number;
   acceptedCount: number;
   rejectedCount: number;
+  invalidCount: number;
   exactDuplicateCount: number;
+  exactDuplicateOnValidCount: number;
   potentialDuplicateCount: number;
   completenessRate: number; // 0 - 100
   validityRate: number;     // 0 - 100
@@ -16,6 +18,7 @@ export interface QualityScorecard {
   fieldMissingness: Record<string, number>;
   rejectionReasons: ValidationErrorDetail[];
   summaryMessage: string;
+  contentFingerprint?: string;
 }
 
 export class QualityAnalyzer {
@@ -30,7 +33,9 @@ export class QualityAnalyzer {
         totalRecords: 0,
         acceptedCount: 0,
         rejectedCount: 0,
+        invalidCount: 0,
         exactDuplicateCount: 0,
+        exactDuplicateOnValidCount: 0,
         potentialDuplicateCount: 0,
         completenessRate: 100,
         validityRate: 100,
@@ -48,11 +53,15 @@ export class QualityAnalyzer {
     let potentialDuplicateCount = 0;
     const isExactMap = new Map<number, boolean>();
     const isPotentialMap = new Map<number, boolean>();
+    const dupReasonMap = new Map<number, string>();
 
     for (const dup of duplicateResults) {
       if (dup.isExactDuplicate) {
         exactDuplicateCount++;
         isExactMap.set(dup.rowNum, true);
+        if (dup.duplicateReason) {
+          dupReasonMap.set(dup.rowNum, dup.duplicateReason);
+        }
       }
       if (dup.isPotentialDuplicate) {
         potentialDuplicateCount++;
@@ -61,6 +70,8 @@ export class QualityAnalyzer {
     }
 
     let validRowsCount = 0;
+    let invalidRowsCount = 0;
+    let exactDuplicateOnValidCount = 0;
     const allErrors: ValidationErrorDetail[] = [];
 
     // Track field missingness
@@ -94,11 +105,25 @@ export class QualityAnalyzer {
         consistencyViolations++;
       }
 
-      if (res.isValid && !isExactMap.get(res.rowNum)) {
-        validRowsCount++;
-      }
+      const isExact = Boolean(isExactMap.get(res.rowNum));
 
-      if (!res.isValid) {
+      if (res.isValid) {
+        if (isExact) {
+          exactDuplicateOnValidCount++;
+          const reason = dupReasonMap.get(res.rowNum) || "Exact duplicate record: already exists or duplicated within batch.";
+          allErrors.push({
+            row: res.rowNum,
+            field: "transaction_id",
+            rule: "EXACT_DUPLICATE",
+            problem: reason,
+            expectedFormat: "Unique transaction identifier within organization",
+            example: "TXN-1001",
+          });
+        } else {
+          validRowsCount++;
+        }
+      } else {
+        invalidRowsCount++;
         allErrors.push(...res.errors);
       }
     }
@@ -109,21 +134,20 @@ export class QualityAnalyzer {
     }
 
     const acceptedCount = validRowsCount;
-    const rejectedCount = totalRecords - acceptedCount;
+    const rejectedCount = invalidRowsCount + exactDuplicateOnValidCount;
 
     // Rates
     const validityRate = Math.round((validationResults.filter((r) => r.isValid).length / totalRecords) * 100);
     const duplicateRate = Math.round(((exactDuplicateCount + potentialDuplicateCount * 0.5) / totalRecords) * 100);
     const consistencyRate = Math.round(((totalRecords - consistencyViolations) / totalRecords) * 100);
 
-    // Calculate core completeness across mandatory concepts: sme_id, buyer_id, invoice_amount, invoice_date, due_date
+    // Calculate core completeness across mandatory concepts: sme_id/supplier, buyer_id, invoice_amount, invoice_date
     const coreMissingAvg = (
       missingCounts.sme_id +
       missingCounts.buyer_id +
       missingCounts.invoice_amount +
-      missingCounts.invoice_date +
-      missingCounts.due_date
-    ) / (5 * totalRecords);
+      missingCounts.invoice_date
+    ) / (4 * totalRecords);
     const completenessRate = Math.max(0, Math.round((1 - coreMissingAvg) * 100));
 
     // Weighted Overall Score: 40% Validity + 30% Completeness + 20% Non-duplicate + 10% Consistency
@@ -146,7 +170,7 @@ export class QualityAnalyzer {
     else if (overallQualityScore >= 60) qualityGrade = "C";
     else qualityGrade = "D";
 
-    let summaryMessage = `Processed ${totalRecords} records: ${acceptedCount} accepted for import, ${rejectedCount} rejected (${allErrors.length} validation errors, ${exactDuplicateCount} exact duplicates). Quality Score: ${overallQualityScore}/100 (Grade ${qualityGrade}).`;
+    let summaryMessage = `Processed ${totalRecords} records: ${acceptedCount} accepted for import, ${rejectedCount} rejected (${invalidRowsCount} invalid, ${exactDuplicateOnValidCount} exact duplicates). Quality Score: ${overallQualityScore}/100 (Grade ${qualityGrade}).`;
     if (potentialDuplicateCount > 0) {
       summaryMessage += ` ${potentialDuplicateCount} potential duplicate transactions flagged for review.`;
     }
@@ -155,7 +179,9 @@ export class QualityAnalyzer {
       totalRecords,
       acceptedCount,
       rejectedCount,
+      invalidCount: invalidRowsCount,
       exactDuplicateCount,
+      exactDuplicateOnValidCount,
       potentialDuplicateCount,
       completenessRate,
       validityRate,

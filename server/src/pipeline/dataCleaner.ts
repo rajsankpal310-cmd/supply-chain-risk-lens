@@ -70,22 +70,42 @@ export class DataCleaner {
     if (!val) return undefined;
     const str = String(val).trim().toUpperCase();
 
-    if (["PAID", "SETTLED", "CLEARED", "CLOSED"].includes(str)) return "PAID";
-    if (["PENDING", "UNPAID", "OPEN", "DUE"].includes(str)) return "PENDING";
+    // Strong payment-completion statuses (never include ambiguous ISSUED)
+    if (["PAID", "SETTLED", "CLEARED", "CLOSED", "DISBURSED", "DISBURSEMENT", "COMPLETED", "PAID_IN_FULL"].includes(str)) return "PAID";
+
+    // Open / document creation / unsettled states
+    if (["PENDING", "UNPAID", "OPEN", "DUE", "SUBMITTED", "APPROVED", "IN_PROCESS", "PROCESSING", "ISSUED", "INVOICED", "BILLED"].includes(str)) return "PENDING";
     if (["DELAYED", "LATE"].includes(str)) return "DELAYED";
     if (["OVERDUE", "PAST_DUE", "DEFAULT_RISK"].includes(str)) return "OVERDUE";
     if (["PARTIALLY_PAID", "PARTIAL", "PART"].includes(str)) return "PARTIALLY_PAID";
     if (["CRITICAL"].includes(str)) return "CRITICAL";
     if (["DEFAULTED", "BAD_DEBT", "WRITTEN_OFF"].includes(str)) return "DEFAULTED";
+    if (["CANCELLED", "CANCELED", "VOID", "VOIDED"].includes(str)) return "CANCELLED";
+
+    // Substring / fuzzy keyword matches for common lifecycle terms
+    if (str.includes("DISBURS") || str.includes("CLEAR") || str.includes("SETTLE") || str.includes("PAID")) return "PAID";
+    if (str.includes("PEND") || str.includes("OPEN") || str.includes("UNPAID") || str.includes("ISSUE") || str.includes("INVOIC")) return "PENDING";
+    if (str.includes("LATE") || str.includes("DELAY")) return "DELAYED";
+    if (str.includes("OVERDUE")) return "OVERDUE";
+    if (str.includes("CANCEL") || str.includes("VOID")) return "CANCELLED";
 
     return str; // keep raw if custom
   }
 
   static cleanRow(raw: Record<string, any>, mapping: Record<string, string>): CleanedTransactionRow {
     const getRaw = (concept: string): any => {
+      // 1. canonicalField -> sourceColumn lookup
       const col = mapping[concept];
       if (col && raw[col] !== undefined) return raw[col];
-      // fallback to direct concept name on object
+
+      // 2. Inverse sourceColumn -> canonicalField lookup support
+      for (const [srcCol, canonKey] of Object.entries(mapping)) {
+        if (canonKey === concept && raw[srcCol] !== undefined) {
+          return raw[srcCol];
+        }
+      }
+
+      // 3. Fallback to direct concept name on object
       if (raw[concept] !== undefined) return raw[concept];
       const camel = concept.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
       if (raw[camel] !== undefined) return raw[camel];
@@ -94,10 +114,10 @@ export class DataCleaner {
       return undefined;
     };
 
-    const rawTxnId = getRaw("transaction_id");
+    const rawTxnId = getRaw("transaction_id") || getRaw("document_id") || getRaw("voucher_no");
     const rawSmeId = getRaw("sme_id");
-    const rawBuyerId = getRaw("buyer_id");
-    const rawSupplierId = getRaw("supplier_id");
+    const rawSupplierId = getRaw("supplier_id") || getRaw("supplier_name");
+    const rawBuyerId = getRaw("buyer_id") || getRaw("buyer_name");
     const rawAmount = getRaw("invoice_amount");
     const rawOutstanding = getRaw("outstanding_amount");
     const rawInvDate = getRaw("invoice_date");
@@ -106,11 +126,22 @@ export class DataCleaner {
     const rawCredit = getRaw("credit_period");
     const rawStatus = getRaw("payment_status");
 
+    // Party-role resolution:
+    // Case 1: Supplier -> Buyer (e.g. Public payment dataset)
+    // Both supplier and buyer are external counterparties.
+    // Case 2: SME -> Buyer (Sales ledger)
+    // Buyer is counterparty; current tenant organization is the SME seller.
+    // Case 3: Supplier -> SME (Purchase / AP ledger)
+    // Supplier is counterparty; current tenant organization is the purchasing buyer.
+    const effectiveSupplierId = rawSupplierId || undefined;
+    const effectiveBuyerId = rawBuyerId || (rawSupplierId ? "CURRENT_ORGANIZATION_SME" : undefined);
+    const effectiveSmeId = rawSmeId || (rawSupplierId ? rawSupplierId : (rawBuyerId ? "CURRENT_ORGANIZATION_SME" : undefined));
+
     return {
       transactionId: this.cleanString(rawTxnId) || undefined,
-      smeId: this.cleanString(rawSmeId) || undefined,
-      buyerId: this.cleanString(rawBuyerId) || undefined,
-      supplierId: this.cleanString(rawSupplierId) || null,
+      smeId: this.cleanString(effectiveSmeId) || undefined,
+      buyerId: this.cleanString(effectiveBuyerId) || undefined,
+      supplierId: this.cleanString(effectiveSupplierId) || null,
       invoiceAmount: this.cleanNumber(rawAmount),
       outstandingAmount: this.cleanNumber(rawOutstanding),
       invoiceDate: this.cleanDate(rawInvDate) || undefined,

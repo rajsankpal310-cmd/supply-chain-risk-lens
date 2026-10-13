@@ -234,7 +234,7 @@ function Landing() {
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-16 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Start Risk Analysis</h2>
-              <p className="text-muted-foreground mt-1.5 text-sm">Sign in with the demo account and explore the full workflow on sample data.</p>
+              <p className="text-muted-foreground mt-1.5 text-sm">Sign in to access analytics, transaction ledgers, and supply chain intelligence.</p>
             </div>
             <Button size="lg" asChild>
               <Link to="/login">
@@ -246,7 +246,7 @@ function Landing() {
       </main>
 
       <footer className="border-border/70 text-muted-foreground border-t py-8 text-center text-xs">
-        NEXUS-CFR · Demo dataset only — sample data, not real financial information.
+        NEXUS-CFR · Financial Risk & Supply Chain Resilience Decision Support Platform
       </footer>
 
       <SystemGuideModal open={guideOpen} onOpenChange={setGuideOpen} />

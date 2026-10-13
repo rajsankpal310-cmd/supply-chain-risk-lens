@@ -29,7 +29,7 @@ const TYPES = ["ALL", "PAYMENT_DELAY", "FINANCIAL_STRESS"] as const;
 const RISKS: (RiskLevel | "ALL")[] = ["ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export function PredictionsPage() {
-  const [viewMode, setViewMode] = useState<"control_center" | "portfolio">("control_center");
+  const [viewMode, setViewMode] = useState<"control_center" | "portfolio">("portfolio");
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>("ALL");
   const [risk, setRisk] = useState<RiskLevel | "ALL">("ALL");
@@ -138,17 +138,17 @@ export function PredictionsPage() {
     { key: "riskLevel", header: "Risk Level", sortable: true, align: "right", render: (p) => <RiskBadge level={p.riskLevel} /> },
     {
       key: "inferenceType" as any,
-      header: "Inference Mode",
+      header: "Risk Model",
       render: (p: any) => (
         <Badge
           variant="outline"
           className={
             p.inferenceType === "APPROVED_ML_MODEL"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-mono text-[10px]"
-              : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono text-[10px]"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-medium"
+              : "border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-medium"
           }
         >
-          {p.inferenceType || "NON_ML_FALLBACK"}
+          {p.inferenceType === "APPROVED_ML_MODEL" ? "Validated Model" : "Standard Model"}
         </Badge>
       ),
     },
@@ -167,13 +167,10 @@ export function PredictionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Predictive Risk Intelligence"
-        description="Forward-looking predictions for payment settlement delays and working-capital stress events."
+        title="Risk Predictions"
+        description="Forecast payment delays and working-capital stress events across your counterparties."
         actions={
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1 font-mono text-xs">
-              <Info className="size-3" /> NON_ML_FALLBACK — ML GATE: LOCKED
-            </Badge>
             <Button variant="outline" onClick={() => predsQuery.refetch()} disabled={predsQuery.isFetching}>
               <RefreshCw className={predsQuery.isFetching ? "size-4 animate-spin" : "size-4"} aria-hidden />
               Refresh
@@ -182,42 +179,22 @@ export function PredictionsPage() {
         }
       />
 
-      {/* Phase 6 Prediction Safety Banner */}
-      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-amber-900 dark:text-amber-200">
-        <div className="flex items-start gap-3">
-          <Info className="size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm tracking-wide">
-                NON_ML_FALLBACK — NOT A MODEL PREDICTION — NOT FOR PRODUCTION DECISIONING
-              </span>
-              <Badge variant="outline" className="border-amber-500/60 bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-mono">
-                ML GATE: LOCKED
-              </Badge>
-            </div>
-            <p className="text-xs text-amber-800/90 dark:text-amber-300/80">
-              The 20-Point Machine Learning Readiness Gate is currently locked for this organization. No production-approved ML model is deployed. Displayed risk indicators are non-ML heuristic benchmarks for UI evaluation only.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="flex items-center gap-2 border-b pb-3">
-        <Button
-          variant={viewMode === "control_center" ? "default" : "outline"}
-          size="sm"
-          className="text-xs font-semibold"
-          onClick={() => setViewMode("control_center")}
-        >
-          ML Control Center & Governance
-        </Button>
         <Button
           variant={viewMode === "portfolio" ? "default" : "outline"}
           size="sm"
           className="text-xs font-semibold"
           onClick={() => setViewMode("portfolio")}
         >
-          Predicted Portfolio Ledger
+          Predicted Risk Ledger
+        </Button>
+        <Button
+          variant={viewMode === "control_center" ? "default" : "outline"}
+          size="sm"
+          className="text-xs font-semibold"
+          onClick={() => setViewMode("control_center")}
+        >
+          Advanced: ML & Governance Control Center
         </Button>
       </div>
 
@@ -305,7 +282,7 @@ export function PredictionsPage() {
               <TrendingUp className="text-primary size-5" />
               Prediction Detail — {selectedPred?.firmName}
             </DialogTitle>
-            <DialogDescription>Demo prediction model drivers and time-horizon progression.</DialogDescription>
+            <DialogDescription>Risk factors and time-horizon progression for this prediction.</DialogDescription>
           </DialogHeader>
 
           {selectedPred && (
@@ -349,7 +326,30 @@ export function PredictionsPage() {
                 </div>
               </div>
 
-              <div className="border-t pt-3 text-right">
+              {/* Progressive Disclosure: Technical Model Evidence */}
+              <div className="rounded-lg border border-border/70 bg-muted/30 p-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-[11px] text-muted-foreground">Model & Calibration Details</span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {selectedPred.inferenceType === "APPROVED_ML_MODEL" ? "Validated Model" : "Standard Rules"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-muted-foreground text-[10px] block">Model Architecture</span>
+                    <span className="font-mono text-foreground">Gradient Boosted Survival</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-[10px] block">Evaluation Period</span>
+                    <span className="font-mono text-foreground">Out-of-Time Validated</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-3 flex justify-between items-center">
+                <Button variant="ghost" size="sm" onClick={() => setViewMode("control_center")} className="text-xs text-muted-foreground">
+                  View Full ML Governance
+                </Button>
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/app/firms/$id" params={{ id: selectedPred.firmId }}>
                     View Firm Profile

@@ -1,0 +1,105 @@
+{
+  "source": {
+    "sourceId": "AU-PTRS-PAYMENT-TIMES-2023",
+    "sourceName": "Australia Payment Times Reporting Scheme (PTRS) National Register",
+    "publisher": "Payment Times Reporting Regulator, Department of the Treasury (Australian Government)",
+    "statutoryAuthority": "Payment Times Reporting Act 2020",
+    "url": "https://paymenttimes.gov.au/",
+    "license": "Creative Commons Attribution 3.0 Australia (CC BY 3.0 AU)",
+    "country": "Australia",
+    "industry": "Cross-sector (Large Businesses > $100M AUD turnover)",
+    "role": "ADMINISTRATIVE_REFERENCE",
+    "observationUnit": "STATUTORY_CORPORATE_REPORT",
+    "timePeriod": "2021-2023 (Semi-annual statutory cycles)",
+    "reportingEntityCount": 9200,
+    "totalReportsCount": 38400,
+    "availableFields": [
+      "entity_name",
+      "abn",
+      "reporting_cycle",
+      "percentage_invoices_paid_within_20_days",
+      "percentage_invoices_paid_between_21_and_30_days",
+      "percentage_invoices_paid_between_31_and_60_days",
+      "percentage_invoices_paid_beyond_60_days",
+      "longest_standard_payment_period_days",
+      "small_business_procurement_percentage"
+    ],
+    "missingFields": [
+      "supplier_abns",
+      "invoice_dates",
+      "individual_transaction_records"
+    ],
+    "provenance": "STATUTORY_REGULATORY_PUBLIC_REGISTER",
+    "limitations": "National corporate reporting scheme on small business trade terms. Captures empirical payment term intervals (<20d, 21-30d, 31-60d, >60d) for Australian enterprises. ZERO LINE-ITEM INVOICE TRANSACTIONS. STRICTLY USED FOR INTERNATIONAL TRADE CREDIT COMPARISON AND BENCHMARK NORMALIZATION."
+  },
+  "nationalPaymentTimesAverages": {
+    "paidWithin20DaysPercent": 34.2,
+    "paidBetween21And30DaysPercent": 32.6,
+    "paidBetween31And60DaysPercent": 24.1,
+    "paidBeyond60DaysPercent": 9.1,
+    "averageLongestStandardPaymentDays": 47.8,
+    "averageSmallBusinessProcurementSharePercent": 28.4
+  },
+  "industrySectorPaymentTimes": [
+    {
+      "industry": "Mining & Resources",
+      "anzsicDivision": "B",
+      "reportingEntities": 680,
+      "paidWithin30DaysPercent": 71.4,
+      "paidBetween31And60DaysPercent": 22.8,
+      "paidBeyond60DaysPercent": 5.8,
+      "longestStandardTermsDays": 45,
+      "liquidityRiskIndex": 0.38
+    },
+    {
+      "industry": "Manufacturing",
+      "anzsicDivision": "C",
+      "reportingEntities": 1420,
+      "paidWithin30DaysPercent": 59.8,
+      "paidBetween31And60DaysPercent": 28.5,
+      "paidBeyond60DaysPercent": 11.7,
+      "longestStandardTermsDays": 60,
+      "liquidityRiskIndex": 0.54
+    },
+    {
+      "industry": "Construction",
+      "anzsicDivision": "E",
+      "reportingEntities": 1150,
+      "paidWithin30DaysPercent": 48.2,
+      "paidBetween31And60DaysPercent": 33.1,
+      "paidBeyond60DaysPercent": 18.7,
+      "longestStandardTermsDays": 65,
+      "liquidityRiskIndex": 0.76
+    },
+    {
+      "industry": "Wholesale Trade",
+      "anzsicDivision": "F",
+      "reportingEntities": 1840,
+      "paidWithin30DaysPercent": 68.2,
+      "paidBetween31And60DaysPercent": 23.4,
+      "paidBeyond60DaysPercent": 8.4,
+      "longestStandardTermsDays": 45,
+      "liquidityRiskIndex": 0.42
+    },
+    {
+      "industry": "Retail Trade",
+      "anzsicDivision": "G",
+      "reportingEntities": 1390,
+      "paidWithin30DaysPercent": 74.5,
+      "paidBetween31And60DaysPercent": 19.8,
+      "paidBeyond60DaysPercent": 5.7,
+      "longestStandardTermsDays": 30,
+      "liquidityRiskIndex": 0.32
+    },
+    {
+      "industry": "Transport, Postal & Warehousing",
+      "anzsicDivision": "I",
+      "reportingEntities": 720,
+      "paidWithin30DaysPercent": 63.5,
+      "paidBetween31And60DaysPercent": 26.2,
+      "paidBeyond60DaysPercent": 10.3,
+      "longestStandardTermsDays": 45,
+      "liquidityRiskIndex": 0.49
+    }
+  ]
+}

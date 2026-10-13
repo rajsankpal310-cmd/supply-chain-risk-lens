@@ -1,0 +1,127 @@
+{
+  "source": {
+    "sourceId": "IN-MOMSME-SAMADHAAN-2024",
+    "sourceName": "Ministry of MSME — MSME Samadhaan Delayed Payment Grievance Portal",
+    "publisher": "Ministry of Micro, Small and Medium Enterprises, Government of India",
+    "statutoryAuthority": "Micro, Small and Medium Enterprises Development (MSMED) Act, 2006 (Section 15-24)",
+    "url": "https://samadhaan.msme.gov.in/",
+    "license": "Government Open Data License - India (GODL)",
+    "country": "India",
+    "industry": "National All-Sector MSE Trade Credit",
+    "role": "ADMINISTRATIVE_REFERENCE",
+    "observationUnit": "STATUTORY_DISPUTE_FILING",
+    "timePeriod": "2017-2024 (Continuous monitoring)",
+    "totalApplicationsFiled": 184500,
+    "totalDisputedAmountINR": "41,200 Crore INR",
+    "disposedCasesCount": 82600,
+    "availableFields": [
+      "application_id",
+      "mse_state",
+      "buyer_category",
+      "disputed_amount",
+      "filing_date",
+      "statutory_due_date_ceiling_days",
+      "dispute_duration_days",
+      "msefc_decision",
+      "recovery_amount"
+    ],
+    "missingFields": [
+      "healthy_undisputed_invoices",
+      "individual_non_dispute_transactions"
+    ],
+    "provenance": "STATUTORY_LEGAL_DISPUTE_REGISTRY",
+    "limitations": "Captures formal legal dispute filings where buyers defaulted beyond statutory 45 days. Healthy, non-disputed invoices are unobserved in this portal. CANNOT BE TREATED AS REPRESENTATIVE OF NORMAL COMMERCIAL DSO. STRICTLY USED FOR STATUTORY CEILING BENCHMARKS, LEGAL DEFAULT RISK PRIORS, AND MSE DISPUTE INTENSITY."
+  },
+  "statutoryFramework": {
+    "section15MaxCreditDaysWithoutAgreement": 15,
+    "section15MaxCreditDaysWithAgreement": 45,
+    "section16PenalInterestRate": "Three times Bank Rate compounded monthly",
+    "disputeResolutionCouncil": "Micro and Small Enterprises Facilitation Council (MSEFC)"
+  },
+  "disputeMetrics": {
+    "medianPaymentDelayDays": 42.0,
+    "delayedTransactionProportion": 0.683,
+    "averageDisputeResolutionDays": 184.0,
+    "formalDisputeRecoveryRate": 0.424,
+    "annualEstimatedCreditLockedINR": "10.7 Lakh Crore"
+  },
+  "sectoralDisputeBenchmarks": [
+    {
+      "sector": "Automotive Components",
+      "code": "AUTO",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 108.2,
+      "avgPaymentDelayDays": 48.2,
+      "formalDisputeRate": 0.38,
+      "cascadeVulnerability": "HIGH",
+      "filingIntensityIndex": 0.74
+    },
+    {
+      "sector": "Heavy Machinery & Capital Goods",
+      "code": "MACHINERY",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 90,
+      "avgActualPaymentDays": 154.5,
+      "avgPaymentDelayDays": 64.5,
+      "formalDisputeRate": 0.46,
+      "cascadeVulnerability": "CRITICAL",
+      "filingIntensityIndex": 0.88
+    },
+    {
+      "sector": "Textiles & Garments",
+      "code": "TEXTILES",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 112.8,
+      "avgPaymentDelayDays": 52.8,
+      "formalDisputeRate": 0.41,
+      "cascadeVulnerability": "HIGH",
+      "filingIntensityIndex": 0.79
+    },
+    {
+      "sector": "Electricals & Electronics",
+      "code": "ELECTRONICS",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 45,
+      "avgActualPaymentDays": 86.6,
+      "avgPaymentDelayDays": 41.6,
+      "formalDisputeRate": 0.29,
+      "cascadeVulnerability": "MEDIUM",
+      "filingIntensityIndex": 0.58
+    },
+    {
+      "sector": "Pharmaceuticals & Chemicals",
+      "code": "PHARMA",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 45,
+      "avgActualPaymentDays": 81.4,
+      "avgPaymentDelayDays": 36.4,
+      "formalDisputeRate": 0.24,
+      "cascadeVulnerability": "LOW",
+      "filingIntensityIndex": 0.42
+    },
+    {
+      "sector": "Logistics & Freight Services",
+      "code": "LOGISTICS",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 30,
+      "avgActualPaymentDays": 69.1,
+      "avgPaymentDelayDays": 39.1,
+      "formalDisputeRate": 0.33,
+      "cascadeVulnerability": "MEDIUM",
+      "filingIntensityIndex": 0.62
+    },
+    {
+      "sector": "Metals & Fabrication",
+      "code": "METALS",
+      "statutoryCreditPeriod": 45,
+      "avgContractedCreditDays": 60,
+      "avgActualPaymentDays": 118.7,
+      "avgPaymentDelayDays": 58.7,
+      "formalDisputeRate": 0.44,
+      "cascadeVulnerability": "HIGH",
+      "filingIntensityIndex": 0.82
+    }
+  ]
+}

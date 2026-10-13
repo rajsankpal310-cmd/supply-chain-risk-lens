@@ -183,75 +183,130 @@ export const relationshipService = {
 };
 
 // ---------------------------------------------------------------- upload
-export const EXPECTED_COLUMNS = [
-  "transaction_id",
-  "sme_id",
-  "buyer_id",
-  "supplier_id",
-  "invoice_amount",
-  "invoice_date",
-  "due_date",
-  "payment_date",
-  "credit_period",
-  "outstanding_amount",
-  "payment_status",
-] as const;
+export interface CanonicalField {
+  key: string;
+  label: string;
+  category: "IDENTITY" | "PARTIES" | "FINANCIAL" | "DATES" | "STATUS" | "BUSINESS";
+  isRequired: boolean;
+  description: string;
+}
 
-export type ExpectedColumn = (typeof EXPECTED_COLUMNS)[number];
-
-const REQUIRED_COLUMNS: ExpectedColumn[] = [
-  "transaction_id",
-  "sme_id",
-  "buyer_id",
-  "invoice_amount",
-  "invoice_date",
-  "due_date",
-  "payment_status",
+export const CANONICAL_SCHEMA: CanonicalField[] = [
+  { key: "transaction_id", label: "Transaction / Invoice ID", category: "IDENTITY", isRequired: true, description: "Unique invoice or transaction identifier" },
+  { key: "supplier_id", label: "Supplier / Vendor ID", category: "PARTIES", isRequired: false, description: "Vendor code or supplier identifier" },
+  { key: "supplier_name", label: "Supplier / Vendor Name", category: "PARTIES", isRequired: false, description: "Legal name of the vendor/supplier firm" },
+  { key: "buyer_id", label: "Buyer / Customer / Department ID", category: "PARTIES", isRequired: false, description: "Customer code, buyer, or purchasing department" },
+  { key: "buyer_name", label: "Buyer / Customer / Department Name", category: "PARTIES", isRequired: false, description: "Name of purchasing buyer or department" },
+  { key: "sme_id", label: "SME / Primary Company ID", category: "PARTIES", isRequired: false, description: "Identifier for the uploading SME company (when explicit)" },
+  { key: "invoice_amount", label: "Invoice / Transaction Amount", category: "FINANCIAL", isRequired: true, description: "Gross or net invoice monetary amount" },
+  { key: "outstanding_amount", label: "Outstanding / Open Amount", category: "FINANCIAL", isRequired: false, description: "Remaining unpaid balance on this document" },
+  { key: "payment_amount", label: "Payment / Settled Amount", category: "FINANCIAL", isRequired: false, description: "Disbursed or cleared payment amount" },
+  { key: "currency", label: "Currency", category: "FINANCIAL", isRequired: false, description: "Currency code (e.g. INR, USD, EUR)" },
+  { key: "invoice_date", label: "Invoice / Document Date", category: "DATES", isRequired: true, description: "Date of invoice issuance" },
+  { key: "due_date", label: "Due Date", category: "DATES", isRequired: false, description: "Contractual payment due date" },
+  { key: "payment_date", label: "Payment / Settlement Date", category: "DATES", isRequired: false, description: "Actual payment disbursement or clearing date" },
+  { key: "payment_status", label: "Payment Status", category: "STATUS", isRequired: false, description: "Payment status (PAID, PENDING, OVERDUE, etc.)" },
+  { key: "is_open", label: "Is Open Flag", category: "STATUS", isRequired: false, description: "Boolean indicator whether invoice is unsettled" },
+  { key: "credit_period", label: "Credit Period (Days)", category: "BUSINESS", isRequired: false, description: "Credit terms period in days" },
+  { key: "purchase_order_id", label: "Purchase Order (PO) Number", category: "BUSINESS", isRequired: false, description: "Purchase order or reference ID" },
+  { key: "document_id", label: "Document / Check ID", category: "BUSINESS", isRequired: false, description: "Secondary voucher or check number" },
+  { key: "document_type", label: "Document Type", category: "BUSINESS", isRequired: false, description: "Document type (e.g. INVOICE, CREDIT_NOTE)" },
+  { key: "business_unit", label: "Business Unit / Branch", category: "BUSINESS", isRequired: false, description: "Business operating division or plant" },
+  { key: "industry", label: "Industry Sector", category: "BUSINESS", isRequired: false, description: "Industry classification" },
+  { key: "region", label: "Region / Location", category: "BUSINESS", isRequired: false, description: "Geographic territory or state" },
 ];
 
+export const EXPECTED_COLUMNS = CANONICAL_SCHEMA.map((f) => f.key);
+export type ExpectedColumn = string;
+
+const REQUIRED_COLUMNS = ["transaction_id", "invoice_amount", "invoice_date"];
+
 export const uploadService = {
-  /** Parses a CSV file in the browser. Non-CSV files fall back to a representative sample. */
+  /** Parses a CSV or XLSX file in the browser without row truncation or sampling. */
   async parseFile(file: File): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
-    await mockDelay(500);
+    await mockDelay(300);
     const isCsv = file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv";
-    if (!isCsv) return uploadService.sampleParsed();
+    const isXlsx = /\.(xlsx|xls)$/i.test(file.name) || file.type.includes("spreadsheet") || file.type.includes("excel");
+
+    if (!isCsv && !isXlsx) {
+      throw new Error("Unsupported file format. Please upload a CSV or Excel (.xlsx, .xls) file.");
+    }
+
+    if (isXlsx) {
+      const buffer = await file.arrayBuffer();
+      const XLSX = await import("xlsx");
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      if (!sheetName) throw new Error("The Excel file contains no worksheets.");
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) throw new Error("Worksheet could not be read.");
+      const jsonData = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" });
+      if (jsonData.length < 2) throw new Error("The Excel file does not contain any data rows.");
+      const rawHeaders = (jsonData[0] as any[]).map((h) => String(h ?? "").trim());
+      const headers = rawHeaders.filter((h) => h.length > 0);
+      const rows = jsonData.slice(1).map((rowArr: any[]) => {
+        const rowObj: Record<string, string> = {};
+        headers.forEach((h, idx) => {
+          const val = rowArr[idx];
+          if (val instanceof Date) {
+            rowObj[h] = val.toISOString().slice(0, 10);
+          } else {
+            rowObj[h] = val !== undefined && val !== null ? String(val).trim() : "";
+          }
+        });
+        return rowObj;
+      }).filter((r) => Object.values(r).some((v) => v.length > 0));
+      return { headers, rows };
+    }
+
+    // CSV parsing with streaming line scanner to prevent memory bloat
     const text = await file.text();
-    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length < 2) throw new Error("The file does not contain any data rows.");
-    const headers = splitCsvLine(lines[0]!);
-    const rows = lines.slice(1).map((line) => {
-      const cells = splitCsvLine(line);
-      return Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
-    });
+    const rows: Record<string, string>[] = [];
+    let headers: string[] = [];
+    let lineStart = 0;
+    let isHeader = true;
+
+    while (lineStart < text.length) {
+      let lineEnd = text.indexOf("\n", lineStart);
+      if (lineEnd === -1) lineEnd = text.length;
+      let line = text.slice(lineStart, lineEnd);
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      lineStart = lineEnd + 1;
+
+      if (!line.trim()) continue;
+
+      if (isHeader) {
+        headers = splitCsvLine(line).map((h) => h.trim());
+        isHeader = false;
+      } else {
+        const cells = splitCsvLine(line);
+        const row: Record<string, string> = {};
+        for (let i = 0; i < headers.length; i++) {
+          row[headers[i]!] = cells[i] ?? "";
+        }
+        rows.push(row);
+      }
+    }
+
+    if (rows.length === 0) {
+      throw new Error("The file does not contain any data rows.");
+    }
+
     return { headers, rows };
   },
 
-  sampleParsed(): { headers: string[]; rows: Record<string, string>[] } {
-    const headers = ["Invoice No", "SME Code", "Buyer Code", "Supplier Code", "Amount", "Invoice Dt", "Due Dt", "Paid Dt", "Credit Days", "Outstanding", "Status"];
-    const rows = db.transactions.slice(0, 40).map((t, i) => ({
-      "Invoice No": i === 7 ? db.transactions[6]!.id : t.id,
-      "SME Code": t.smeId,
-      "Buyer Code": t.buyerId,
-      "Supplier Code": t.supplierId ?? "",
-      Amount: i === 3 ? "abc" : String(t.invoiceAmount),
-      "Invoice Dt": i === 11 ? "31/31/2026" : t.invoiceDate,
-      "Due Dt": t.dueDate,
-      "Paid Dt": t.paymentDate ?? "",
-      "Credit Days": String(t.creditPeriodDays ?? ""),
-      Outstanding: String(t.outstandingAmount),
-      Status: i === 15 ? "" : t.paymentStatus,
-    }));
-    return { headers, rows };
-  },
-
-  async inspectSchema(headers: string[], rows: Record<string, string>[]): Promise<any> {
+  async inspectSchema(
+    headers: string[],
+    rows: Record<string, string>[],
+    userOverrides: Record<string, string> = {}
+  ): Promise<any> {
     if (!USE_MOCK_API) {
-      return apiClient.post<any>(ENDPOINTS.uploadInspect, { headers, rows });
+      return apiClient.post<any>(ENDPOINTS.uploadInspect, { headers, rows, userOverrides });
     }
     await mockDelay(300);
     return {
       headers,
-      suggestedMapping: {},
+      suggestedMapping: userOverrides,
       profiles: headers.map((h) => ({ header: h, inferredType: "STRING", missingCount: 0, missingRate: 0, sampleValues: [] })),
     };
   },
@@ -350,6 +405,7 @@ export const uploadService = {
     datasetVersion?: string | undefined;
     license?: string | undefined;
     dataGranularity?: string | undefined;
+    fileSize?: number | undefined;
   }): Promise<{ imported: number; batchId: string; rejected?: number; duplicates?: number; qualityScore?: number; scorecard?: any }> {
     if (!USE_MOCK_API) {
       return apiClient.post(ENDPOINTS.uploadImport, payload);

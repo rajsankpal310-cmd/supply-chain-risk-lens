@@ -33,6 +33,9 @@ export class OptimizationService {
     const avgReduction = funded.length ? funded.reduce((s: number, a: any) => s + a.impactReduction, 0) / funded.length : 0;
     const cascadeBefore = 72;
     const expectedLossBefore = candidates.reduce((s: number, c: any) => s + c.firm.outstandingAmount, 0);
+    const allocatedTotal = (Number(budget) || 10000000) - remaining;
+    const cascadeAfter = Math.max(18, Math.round(cascadeBefore - avgReduction * 0.9));
+    const expectedLossAfter = Math.round(expectedLossBefore * (1 - Math.min(0.55, avgReduction / 100)));
 
     const id = `OPT-${Date.now()}`;
 
@@ -42,14 +45,34 @@ export class OptimizationService {
       budget: Number(budget) || 10000000,
       allocations: JSON.stringify(allocations),
       cascadeRiskBefore: cascadeBefore,
-      cascadeRiskAfter: Math.max(18, Math.round(cascadeBefore - avgReduction * 0.9)),
+      cascadeRiskAfter: cascadeAfter,
       expectedLossBefore,
-      expectedLossAfter: Math.round(expectedLossBefore * (1 - Math.min(0.55, avgReduction / 100))),
+      expectedLossAfter,
     });
 
     return {
       id: run.id,
+      label: "MODEL-BASED DECISION RECOMMENDATION",
+      disclaimer: "Optimization outputs are model-based decision recommendations for executive review, not autonomous financial transfers.",
       budget: run.budget,
+      resourceUtilization: {
+        totalBudget: run.budget,
+        allocatedBudget: allocatedTotal,
+        remainingBudget: remaining,
+        utilizationPercent: parseFloat(((allocatedTotal / run.budget) * 100).toFixed(1)),
+      },
+      affectedNodesCount: funded.length,
+      riskReduction: {
+        cascadeRiskBefore: cascadeBefore,
+        cascadeRiskAfter: cascadeAfter,
+        absoluteReduction: cascadeBefore - cascadeAfter,
+        percentReduction: parseFloat((((cascadeBefore - cascadeAfter) / cascadeBefore) * 100).toFixed(1)),
+      },
+      expectedLoss: {
+        before: expectedLossBefore,
+        after: expectedLossAfter,
+        savedAmount: expectedLossBefore - expectedLossAfter,
+      },
       allocations: typeof run.allocations === "string" ? JSON.parse(run.allocations) : run.allocations,
       cascadeRiskBefore: run.cascadeRiskBefore,
       cascadeRiskAfter: run.cascadeRiskAfter,

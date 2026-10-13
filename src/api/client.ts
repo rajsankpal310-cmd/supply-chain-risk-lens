@@ -1,9 +1,55 @@
 // Centralized API client.
-// Today every service resolves against the mock layer (VITE_USE_MOCK_API=true).
-// Flip the flag and the exact same service contracts hit the real REST backend.
+// Production/direct API calls hit the real REST backend (http://localhost:5000/api).
+// When VITE_USE_MOCK_API=true, services resolve against the local mock layer.
 
-const BASE_URL = (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? "/api";
-export const USE_MOCK_API = (import.meta.env['VITE_USE_MOCK_API'] as string | undefined) !== "false";
+/**
+ * Normalizes and builds the target API URL.
+ * Ensures production/direct API calls resolve exactly to http://localhost:5000/api/...
+ * Guarantees proper /api prefix handling and prevents duplicate /api prefixes (/api/api/...).
+ */
+export function buildApiUrl(path: string, overrideBaseUrl?: string): string {
+  let base = (
+    overrideBaseUrl ??
+    (import.meta.env?.['VITE_API_BASE_URL'] as string | undefined) ??
+    "http://localhost:5000/api"
+  ).trim();
+
+  // If base was set to relative /api or points to the Vite frontend dev server (port 5173),
+  // redirect it directly to the Express backend API on http://localhost:5000/api
+  if (!base || base === "/api" || base === "/" || base.startsWith("http://localhost:5173")) {
+    base = "http://localhost:5000/api";
+  }
+
+  // Strip all trailing slashes from base
+  const cleanBase = base.replace(/\/+$/, "");
+
+  // Ensure path starts with a single forward slash
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+  // If cleanBase already ends with /api:
+  if (cleanBase.endsWith("/api")) {
+    // If cleanPath starts with /api/, strip the leading /api to avoid /api/api/...
+    if (cleanPath.startsWith("/api/")) {
+      return `${cleanBase}${cleanPath.slice(4)}`;
+    }
+    // If cleanPath is just /api, return cleanBase
+    if (cleanPath === "/api") {
+      return cleanBase;
+    }
+    return `${cleanBase}${cleanPath}`;
+  }
+
+  // If cleanBase does not end with /api:
+  // If cleanPath doesn't start with /api, insert /api prefix
+  if (!cleanPath.startsWith("/api")) {
+    return `${cleanBase}/api${cleanPath}`;
+  }
+
+  return `${cleanBase}${cleanPath}`;
+}
+
+const rawMockFlag = (import.meta.env?.['VITE_USE_MOCK_API'] as string | undefined)?.toLowerCase();
+export const USE_MOCK_API = rawMockFlag === "true";
 
 export class ApiError extends Error {
   constructor(
@@ -20,12 +66,31 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const fullUrl = buildApiUrl(path);
+
+  const res = await fetch(fullUrl, {
     method,
     headers,
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
-  if (!res.ok) throw new ApiError(`Request failed: ${method} ${path}`, res.status);
+
+  if (!res.ok) {
+    let errorMessage = `Request failed: ${method} ${path} (${res.status})`;
+    try {
+      const errJson = await res.json();
+      if (errJson && typeof errJson === "object") {
+        if (errJson.error && typeof errJson.error === "object" && errJson.error.message) {
+          errorMessage = String(errJson.error.message);
+        } else if ("message" in errJson) {
+          errorMessage = String(errJson.message);
+        }
+      }
+    } catch {
+      // ignore json parse error on non-json error responses
+    }
+    throw new ApiError(errorMessage, res.status);
+  }
+
   const json = await res.json();
   if (json && typeof json === "object" && "success" in json && "data" in json) {
     return json.data as T;

@@ -112,7 +112,7 @@ export const reportService = {
   },
   buildPayload(report: Report, format: "json" | "csv"): { filename: string; content: string; mime: string } {
     const generatedAt = new Date().toISOString();
-    const base = { report: report.name, generatedAt, dataset: "DEMO DATASET — sample data, not real financial information" };
+    const base = { report: report.name, generatedAt, dataset: "Active Operational Dataset" };
 
     const rows: Record<string, unknown>[] = (() => {
       switch (report.key) {

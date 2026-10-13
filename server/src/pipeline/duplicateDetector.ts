@@ -21,18 +21,22 @@ export class DuplicateDetector {
     const seenCompositesInBatch = new Map<string, number>();
 
     // 2. Fetch existing transaction IDs and potential duplicate keys from DB for this organization
-    const incomingTxnIds = rows
-      .map((r) => r.transactionId)
-      .filter((id): id is string => Boolean(id));
+    const incomingTxnIds = Array.from(
+      new Set(rows.map((r) => r.transactionId).filter((id): id is string => Boolean(id)))
+    );
 
     const existingById = new Set<string>();
-    if (incomingTxnIds.length > 0) {
+    // PostgreSQL / Prisma has a hard limit of 32,767 bind parameters.
+    // Querying in chunks of 2,000 (4,000 parameters for OR condition) stays well within safe limits.
+    const TXN_CHUNK_SIZE = 2000;
+    for (let i = 0; i < incomingTxnIds.length; i += TXN_CHUNK_SIZE) {
+      const chunk = incomingTxnIds.slice(i, i + TXN_CHUNK_SIZE);
       const existingTxns = await prisma.transaction.findMany({
         where: {
           organizationId,
           OR: [
-            { id: { in: incomingTxnIds } },
-            { transactionId: { in: incomingTxnIds } },
+            { id: { in: chunk } },
+            { transactionId: { in: chunk } },
           ],
         },
         select: { id: true, transactionId: true },
@@ -45,29 +49,44 @@ export class DuplicateDetector {
     }
 
     // Fetch existing candidates for potential duplicates (matching SME + Buyer + Amount)
-    const possibleCandidates = await prisma.transaction.findMany({
-      where: {
-        organizationId,
-        smeId: { in: rows.map((r) => r.smeId).filter(Boolean) as string[] },
-        buyerId: { in: rows.map((r) => r.buyerId).filter(Boolean) as string[] },
-      },
-      select: {
-        id: true,
-        transactionId: true,
-        smeId: true,
-        buyerId: true,
-        invoiceAmount: true,
-        invoiceDate: true,
-        dueDate: true,
-      },
-    });
-
+    const uniqueSmeIds = Array.from(new Set(rows.map((r) => r.smeId).filter(Boolean) as string[]));
+    const uniqueBuyerIds = Array.from(new Set(rows.map((r) => r.buyerId).filter(Boolean) as string[]));
     const existingCompositeMap = new Map<string, string>();
-    for (const c of possibleCandidates) {
-      const dateStr = c.invoiceDate ? c.invoiceDate.toISOString().slice(0, 10) : "";
-      const dueStr = c.dueDate ? c.dueDate.toISOString().slice(0, 10) : "";
-      const key = `${c.smeId}|${c.buyerId}|${c.invoiceAmount}|${dateStr}|${dueStr}`;
-      existingCompositeMap.set(key, c.transactionId || c.id);
+
+    // Chunk SME and Buyer IDs to keep bind variables safely below PostgreSQL limits
+    const SME_CHUNK = 500;
+    const BUYER_CHUNK = 500;
+    if (uniqueSmeIds.length > 0 && uniqueBuyerIds.length > 0) {
+      for (let s = 0; s < uniqueSmeIds.length; s += SME_CHUNK) {
+        const smeChunk = uniqueSmeIds.slice(s, s + SME_CHUNK);
+        for (let b = 0; b < uniqueBuyerIds.length; b += BUYER_CHUNK) {
+          const buyerChunk = uniqueBuyerIds.slice(b, b + BUYER_CHUNK);
+          const possibleCandidates = await prisma.transaction.findMany({
+            where: {
+              organizationId,
+              smeId: { in: smeChunk },
+              buyerId: { in: buyerChunk },
+            },
+            select: {
+              id: true,
+              transactionId: true,
+              smeId: true,
+              buyerId: true,
+              invoiceAmount: true,
+              invoiceDate: true,
+              dueDate: true,
+            },
+            take: 5000,
+          });
+
+          for (const c of possibleCandidates) {
+            const dateStr = c.invoiceDate ? c.invoiceDate.toISOString().slice(0, 10) : "";
+            const dueStr = c.dueDate ? c.dueDate.toISOString().slice(0, 10) : "";
+            const key = `${c.smeId}|${c.buyerId}|${c.invoiceAmount}|${dateStr}|${dueStr}`;
+            existingCompositeMap.set(key, c.transactionId || c.id);
+          }
+        }
+      }
     }
 
     for (let i = 0; i < rows.length; i++) {
