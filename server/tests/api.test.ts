@@ -327,6 +327,7 @@ describe("NEXUS-CFR Multi-Tenant & RBAC Hardened API Tests", () => {
         organizationId: "ORG-002",
         transactions: [
           {
+            transactionId: `TXN-TAMPER-${Date.now()}`,
             smeId: "FIRM-A-01",
             buyerId: "FIRM-A-02",
             invoiceAmount: 600000,
