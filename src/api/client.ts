@@ -8,16 +8,28 @@
  * Guarantees proper /api prefix handling and prevents duplicate /api prefixes (/api/api/...).
  */
 export function buildApiUrl(path: string, overrideBaseUrl?: string): string {
-  let base = (
+  const isDev = Boolean(import.meta.env?.DEV);
+  const rawBase = (
     overrideBaseUrl ??
-    (import.meta.env?.['VITE_API_BASE_URL'] as string | undefined) ??
-    "http://localhost:5000/api"
-  ).trim();
+    (import.meta.env?.['VITE_API_BASE_URL'] as string | undefined)
+  )?.trim();
 
-  // If base was set to relative /api or points to the Vite frontend dev server (port 5173),
-  // redirect it directly to the Express backend API on http://localhost:5000/api
-  if (!base || base === "/api" || base === "/" || base.startsWith("http://localhost:5173")) {
-    base = "http://localhost:5000/api";
+  let base: string;
+
+  if (rawBase !== undefined && rawBase !== "") {
+    // If someone specifies port 5173 in dev, redirect to backend on 5000
+    if (isDev && rawBase.startsWith("http://localhost:5173")) {
+      base = "http://localhost:5000/api";
+    } else if (rawBase === "/" || rawBase === "/api") {
+      // In development without proxy, default to localhost:5000/api
+      // In production or when deliberately using relative proxy, keep as /api
+      base = isDev ? "http://localhost:5000/api" : "/api";
+    } else {
+      base = rawBase;
+    }
+  } else {
+    // No base URL specified: in dev default to local backend, in prod default to same-origin /api
+    base = isDev ? "http://localhost:5000/api" : "/api";
   }
 
   // Strip all trailing slashes from base
@@ -37,6 +49,11 @@ export function buildApiUrl(path: string, overrideBaseUrl?: string): string {
       return cleanBase;
     }
     return `${cleanBase}${cleanPath}`;
+  }
+
+  // If cleanBase is empty or just "/"
+  if (!cleanBase || cleanBase === "/") {
+    return cleanPath.startsWith("/api") ? cleanPath : `/api${cleanPath}`;
   }
 
   // If cleanBase does not end with /api:
