@@ -195,15 +195,55 @@ export function FirmsPage() {
         />
       ) : (
         <>
-          <DataTable
-            columns={columns}
-            rows={paginatedFirms}
-            rowKey={(f) => f.id}
-            sortBy={sortBy}
-            sortDir={sortDir}
-            onSort={toggleSort}
-            onRowClick={(f) => navigate({ to: "/app/firms/$id", params: { id: f.id } })}
-          />
+          {/* Mobile Firm Cards */}
+          <div className="grid gap-3 sm:hidden">
+            {paginatedFirms.map((f) => (
+              <Card
+                key={f.id}
+                className="p-3.5 space-y-2.5 cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => navigate({ to: "/app/firms/$id", params: { id: f.id } })}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">{f.name}</h3>
+                    <p className="font-mono text-xs text-muted-foreground">{f.id} · {f.city}</p>
+                  </div>
+                  <RiskBadge level={f.riskLevel} score={f.riskScore} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/50">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Role / Industry</span>
+                    <span className="font-medium text-foreground capitalize">{f.role.replace("_", " ").toLowerCase()} · {f.industry}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Outstanding</span>
+                    <span className="font-mono font-semibold text-foreground">{formatINR(f.outstandingAmount)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Avg Delay</span>
+                    <span className="font-mono font-medium text-foreground">{f.avgPaymentDelayDays} days</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Stress / Buffer</span>
+                    <span className="font-mono font-medium text-foreground">{f.financialStress}% · {f.cashBufferDays}d</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop & Tablet Table */}
+          <div className="hidden sm:block">
+            <DataTable
+              columns={columns}
+              rows={paginatedFirms}
+              rowKey={(f) => f.id}
+              sortBy={sortBy}
+              sortDir={sortDir}
+              onSort={toggleSort}
+              onRowClick={(f) => navigate({ to: "/app/firms/$id", params: { id: f.id } })}
+            />
+          </div>
           <TablePagination
             page={page}
             pageSize={pageSize}

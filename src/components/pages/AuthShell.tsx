@@ -19,7 +19,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
         <p className="text-muted-foreground text-xs">Supports primary transactions and verified public research datasets with full provenance tracking.</p>
       </div>
 
-      <div className="flex items-center justify-center p-6">
+      <div className="flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-sm">
           <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="bg-primary text-primary-foreground grid size-8 place-items-center rounded-md font-bold">N</div>

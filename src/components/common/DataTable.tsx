@@ -33,7 +33,7 @@ export function DataTable<T>({
   emptyMessage?: string;
 }) {
   return (
-    <div className="border-border/70 bg-card w-full overflow-x-auto rounded-xl border">
+    <div className="border-border/70 bg-card w-full overflow-x-auto rounded-xl border [overscroll-behavior-x:contain] touch-pan-x">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -116,19 +116,19 @@ export function TablePagination({
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(total, page * pageSize);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
       <p className="text-muted-foreground">
         Showing <span className="text-foreground font-medium">{start}</span>–<span className="text-foreground font-medium">{end}</span> of{" "}
         <span className="text-foreground font-medium">{total}</span>
       </p>
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
           Previous
         </Button>
         <span className="text-muted-foreground px-1 text-xs">
           Page {page} of {pages}
         </span>
-        <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>
+        <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>
           Next
         </Button>
       </div>

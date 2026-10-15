@@ -79,13 +79,13 @@ export function ReportsPage() {
               )}
             </div>
 
-            <div className="border-t pt-3 flex items-center justify-between gap-2">
+            <div className="border-t border-border/60 pt-3 flex flex-wrap items-center justify-between gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => generateMutation.mutate(r.id)}
                 disabled={generateMutation.isPending}
-                className="gap-1.5 text-xs"
+                className="gap-1.5 text-xs h-8"
               >
                 {generateMutation.isPending && generateMutation.variables === r.id ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -95,13 +95,13 @@ export function ReportsPage() {
                 {r.status === "READY" ? "Regenerate" : "Generate"}
               </Button>
 
-              <div className="flex gap-1">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleExport(r, "csv")}
                   disabled={r.status !== "READY"}
-                  className="gap-1 text-xs"
+                  className="gap-1 text-xs h-8 px-2"
                 >
                   <Download className="size-3.5" /> CSV
                 </Button>
@@ -110,7 +110,7 @@ export function ReportsPage() {
                   size="sm"
                   onClick={() => handleExport(r, "json")}
                   disabled={r.status !== "READY"}
-                  className="gap-1 text-xs"
+                  className="gap-1 text-xs h-8 px-2"
                 >
                   <Download className="size-3.5" /> JSON
                 </Button>

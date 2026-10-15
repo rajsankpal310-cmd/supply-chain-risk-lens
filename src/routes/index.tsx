@@ -73,19 +73,19 @@ function Landing() {
 
   return (
     <div className="bg-background text-foreground min-h-screen">
-      <header className="border-border/70 sticky top-0 z-40 border-b backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-          <div className="bg-primary text-primary-foreground grid size-8 place-items-center rounded-md font-bold">N</div>
-          <span className="font-semibold tracking-tight">NEXUS-CFR</span>
-          <nav className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setGuideOpen(true)} className="gap-1 text-xs">
-              <HelpCircle className="size-4 text-primary" />
-              <span>How It Works</span>
+      <header className="border-border/70 sticky top-0 z-40 border-b backdrop-blur bg-background/90">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-6xl items-center gap-2 sm:gap-3 px-3 sm:px-4">
+          <div className="bg-primary text-primary-foreground grid size-7 sm:size-8 place-items-center rounded-md font-bold text-xs sm:text-sm">N</div>
+          <span className="font-semibold tracking-tight text-sm sm:text-base">NEXUS-CFR</span>
+          <nav className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setGuideOpen(true)} className="gap-1 text-xs px-2 sm:px-3 h-8 sm:h-9">
+              <HelpCircle className="size-3.5 sm:size-4 text-primary" />
+              <span className="hidden sm:inline">How It Works</span>
             </Button>
-            <Button variant="ghost" asChild>
+            <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2.5 sm:px-3 h-8 sm:h-9" asChild>
               <Link to="/login">Sign in</Link>
             </Button>
-            <Button asChild>
+            <Button size="sm" className="text-xs sm:text-sm px-2.5 sm:px-3 h-8 sm:h-9" asChild>
               <Link to="/register">Get started</Link>
             </Button>
           </nav>
@@ -94,30 +94,30 @@ function Landing() {
 
       <main>
         <section className="grid-backdrop border-border/70 border-b">
-          <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20 md:py-28">
             <p className="border-primary/40 bg-primary/10 text-primary inline-flex rounded-full border px-3 py-1 text-xs font-medium tracking-wide uppercase">
               SME risk intelligence
             </p>
-            <h1 className="mt-6 max-w-3xl text-3xl leading-tight font-semibold tracking-tight md:text-5xl">
+            <h1 className="mt-5 sm:mt-6 max-w-3xl text-2xl sm:text-4xl md:text-5xl leading-tight font-semibold tracking-tight">
               Predict Financial Risk Before It Becomes a Supply-Chain Crisis.
             </h1>
-            <p className="text-muted-foreground mt-5 max-w-2xl text-base md:text-lg">
+            <p className="text-muted-foreground mt-4 sm:mt-5 max-w-2xl text-sm sm:text-base md:text-lg">
               NEXUS-CFR transforms SME transaction data into payment-risk predictions, supply-chain impact analysis, and actionable financial
               recommendations.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" asChild>
+            <div className="mt-6 sm:mt-8 flex flex-wrap gap-2.5 sm:gap-3">
+              <Button size="lg" className="w-full sm:w-auto" asChild>
                 <Link to="/register">
                   Explore Platform <ArrowRight className="size-4" aria-hidden />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                 <Link to="/login">View Demo</Link>
               </Button>
             </div>
-            <div className="text-muted-foreground mt-10 grid max-w-2xl grid-cols-2 gap-4 text-sm md:grid-cols-4">
+            <div className="text-muted-foreground mt-8 sm:mt-10 grid max-w-2xl grid-cols-2 gap-2.5 sm:gap-4 text-xs sm:text-sm md:grid-cols-4">
               {["20 demo firms", "200 transactions", "50 relationships", "5 shock scenarios"].map((s) => (
-                <div key={s} className="border-border/70 rounded-lg border px-3 py-2">
+                <div key={s} className="border-border/70 rounded-lg border px-2.5 py-2 text-center sm:text-left bg-card/40">
                   {s}
                 </div>
               ))}

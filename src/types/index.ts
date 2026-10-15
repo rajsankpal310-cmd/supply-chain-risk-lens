@@ -120,6 +120,7 @@ export interface RiskFactor {
 
 export interface RiskScore {
   firmId?: string | undefined;
+  isEmpty?: boolean;
   overall: number;
   level: RiskLevel;
   categories: { key: string; label: string; description: string; score: number }[];

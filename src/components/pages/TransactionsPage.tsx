@@ -289,8 +289,8 @@ export function TransactionsPage() {
           </div>
 
           {Boolean(search || status !== "ALL" || risk !== "ALL" || buyerId !== "ALL" || from || to) && (
-            <div className="border-t pt-2.5 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Active filters applied</span>
+            <div className="col-span-full border-t border-border/60 pt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground font-medium">Active filters applied</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -303,7 +303,7 @@ export function TransactionsPage() {
                   setTo("");
                   setPage(1);
                 }}
-                className="gap-1.5 text-xs h-7 text-primary hover:text-primary"
+                className="gap-1.5 text-xs h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
               >
                 <RotateCcw className="size-3" />
                 Reset all filters

@@ -125,15 +125,17 @@ export function DeadlocksPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between border-t pt-3 gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSelectedDeadlock(d)}>
-                  <Eye className="size-3.5" /> Details
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate({ to: "/app/recommendations" })}>
-                  <Lightbulb className="size-3.5" /> Recommendations
-                </Button>
+              <div className="flex flex-wrap items-center justify-between border-t pt-3 gap-1.5 sm:gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Button variant="outline" size="sm" className="h-8 text-xs px-2.5" onClick={() => setSelectedDeadlock(d)}>
+                    <Eye className="size-3.5" /> Details
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs px-2.5" onClick={() => navigate({ to: "/app/recommendations" })}>
+                    <Lightbulb className="size-3.5" /> Recs
+                  </Button>
+                </div>
                 {!d.resolved && (
-                  <Button size="sm" onClick={() => setResolvingDeadlock(d)} disabled={resolveMutation.isPending}>
+                  <Button size="sm" className="h-8 text-xs px-3" onClick={() => setResolvingDeadlock(d)} disabled={resolveMutation.isPending}>
                     Resolve
                   </Button>
                 )}

@@ -62,7 +62,7 @@ export function formatCompanyName(
     if (val === null || val === undefined) return null;
     if (typeof val === "object") {
       const obj = val as Record<string, unknown>;
-      const candidate = obj.name ?? obj.companyName ?? obj.label ?? obj.id;
+      const candidate = obj["name"] ?? obj["companyName"] ?? obj["label"] ?? obj["id"];
       return sanitize(candidate);
     }
     const str = String(val).trim();

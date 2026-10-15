@@ -73,13 +73,13 @@ export function OptimizationPage({ embedded = false }: { embedded?: boolean } = 
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setBudget(1000000)}>₹10 Lakhs</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setBudget(2500000)}>₹25 Lakhs</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setBudget(5000000)}>₹50 Lakhs</Button>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              <Button type="button" variant="outline" size="sm" className="text-xs h-8 px-2 sm:px-3" onClick={() => setBudget(1000000)}>₹10 Lakhs</Button>
+              <Button type="button" variant="outline" size="sm" className="text-xs h-8 px-2 sm:px-3" onClick={() => setBudget(2500000)}>₹25 Lakhs</Button>
+              <Button type="button" variant="outline" size="sm" className="text-xs h-8 px-2 sm:px-3" onClick={() => setBudget(5000000)}>₹50 Lakhs</Button>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end w-full md:w-auto">
               <Button type="submit" className="w-full md:w-auto gap-2" disabled={optimizeMutation.isPending}>
                 {optimizeMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
                 {optimizeMutation.isPending ? "Solving Optimization..." : "Run Optimization"}

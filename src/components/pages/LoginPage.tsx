@@ -75,8 +75,8 @@ export function LoginPage() {
           {errors.password && <p className="text-destructive text-xs">{errors.password}</p>}
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} aria-label="Remember this session" />
             <span className="text-muted-foreground">Remember session</span>
           </label>

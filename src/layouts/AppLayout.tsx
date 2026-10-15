@@ -264,45 +264,63 @@ export function AppLayout() {
   const title = TITLES[location.pathname] ?? "NEXUS-CFR";
   const crumbGroup = activeNavGroups.find((g) => g.items.some((i) => location.pathname.startsWith(i.to)))?.label ?? "Overview";
 
+  const [searchMobileOpen, setSearchMobileOpen] = useState(false);
+
   async function handleLogout() {
     await logout();
     toast.success("Signed out");
     navigate({ to: "/login", replace: true });
   }
 
-  const sidebar = (
-    <div className={cn("bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-[width]", collapsed ? "w-[74px]" : "w-64")}>
+  const renderSidebar = (isMobile = false) => (
+    <div
+      className={cn(
+        "bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-[width]",
+        isMobile ? "w-72 max-w-[85vw]" : collapsed ? "w-[74px]" : "w-64"
+      )}
+    >
       <div className="border-sidebar-border flex h-16 items-center gap-2 border-b px-4">
         <div className="bg-primary text-primary-foreground grid size-8 shrink-0 place-items-center rounded-md font-bold">N</div>
-        {!collapsed && (
-          <div className="min-w-0">
+        {(!collapsed || isMobile) && (
+          <div className="min-w-0 flex-1">
             <p className="text-sidebar-foreground truncate text-sm font-semibold tracking-tight">NEXUS-CFR</p>
             <p className="text-muted-foreground truncate text-[10px] tracking-wide uppercase">Supply Chain Resilience</p>
           </div>
         )}
-        <Button variant="ghost" size="icon" className="ml-auto hidden lg:inline-flex" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
-          <ChevronLeft className={cn("size-4 transition-transform", collapsed && "rotate-180")} aria-hidden />
-        </Button>
-        <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation">
-          <X className="size-4" aria-hidden />
-        </Button>
+        {!isMobile ? (
+          <Button variant="ghost" size="icon" className="ml-auto hidden lg:inline-flex" onClick={() => setCollapsed((c) => !c)} aria-label="Toggle sidebar">
+            <ChevronLeft className={cn("size-4 transition-transform", collapsed && "rotate-180")} aria-hidden />
+          </Button>
+        ) : (
+          <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation">
+            <X className="size-5" aria-hidden />
+          </Button>
+        )}
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Main navigation">
         {filteredNavGroups.map((group) => (
           <div key={group.label}>
-            {!collapsed && <p className="text-muted-foreground px-2 pb-1.5 text-[10px] font-semibold tracking-wider uppercase">{group.label}</p>}
-            <ul className="space-y-0.5">
+            {(!collapsed || isMobile) && (
+              <p className="text-muted-foreground px-2.5 pb-1.5 text-[10px] font-semibold tracking-wider uppercase">{group.label}</p>
+            )}
+            <ul className="space-y-1">
               {group.items.map((item) => (
                 <li key={item.to}>
                   <Link
                     to={item.to}
                     title={item.label}
-                    className="text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[status=active]:bg-primary/12 data-[status=active]:text-primary flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors data-[status=active]:font-semibold"
+                    onClick={() => {
+                      if (isMobile) setMobileOpen(false);
+                    }}
+                    className={cn(
+                      "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[status=active]:bg-primary/15 data-[status=active]:text-primary flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors data-[status=active]:font-semibold",
+                      isMobile ? "min-h-[44px] py-2.5 text-sm" : "py-2"
+                    )}
                     activeProps={{ "aria-current": "page" }}
                   >
                     <item.icon className="size-4 shrink-0" aria-hidden />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    {(!collapsed || isMobile) && <span className="truncate">{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -312,56 +330,90 @@ export function AppLayout() {
       </nav>
 
       <div className="border-sidebar-border border-t p-3">
-        <Link to="/app/profile" className="hover:bg-sidebar-accent flex items-center gap-3 rounded-md p-2 transition-colors">
-          <Avatar className="size-8">
+        <Link
+          to="/app/profile"
+          onClick={() => {
+            if (isMobile) setMobileOpen(false);
+          }}
+          className="hover:bg-sidebar-accent flex min-h-[44px] items-center gap-3 rounded-md p-2 transition-colors"
+        >
+          <Avatar className="size-8 shrink-0">
             <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">{user?.avatarInitials}</AvatarFallback>
           </Avatar>
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.fullName}</p>
               <p className="text-muted-foreground truncate text-[11px]">{getRoleLabel(user?.role)}</p>
             </div>
           )}
         </Link>
-        <Button variant="ghost" className="text-muted-foreground hover:text-foreground mt-1 w-full justify-start gap-3 px-2" onClick={handleLogout}>
-          <LogOut className="size-4" aria-hidden />
-          {!collapsed && "Log out"}
+        <Button
+          variant="ghost"
+          className="text-muted-foreground hover:text-foreground mt-1 w-full justify-start gap-3 px-2 min-h-[44px]"
+          onClick={handleLogout}
+        >
+          <LogOut className="size-4 shrink-0" aria-hidden />
+          {(!collapsed || isMobile) && "Log out"}
         </Button>
       </div>
     </div>
   );
 
+  // Bottom navigation items for quick mobile access
+  const mobileBottomNavItems = useMemo(() => {
+    return [
+      { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/app/transactions", label: "Ledger", icon: Table2 },
+      { to: "/app/network", label: "Network", icon: Network },
+      { to: "/app/risk", label: "Risk", icon: Gauge },
+      { to: "/app/alerts", label: "Alerts", icon: Bell, badge: unread > 0 ? unread : null },
+    ].filter((item) => canRoleAccess(user?.role, item.to));
+  }, [user?.role, unread]);
+
   return (
     <div className="bg-background flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen lg:block">{sidebar}</aside>
+      <aside className="sticky top-0 hidden h-screen lg:block">{renderSidebar(false)}</aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="bg-background/70 absolute inset-0" onClick={() => setMobileOpen(false)} aria-hidden />
-          <div className="absolute inset-y-0 left-0">{sidebar}</div>
+          <div
+            className="bg-background/80 fixed inset-0 backdrop-blur-sm transition-opacity"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden
+          />
+          <div className="fixed inset-y-0 left-0 z-50 shadow-2xl animate-in slide-in-from-left duration-200">
+            {renderSidebar(true)}
+          </div>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-border bg-background/85 sticky top-0 z-40 flex h-16 items-center gap-3 border-b px-4 backdrop-blur md:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+        <header className="border-border bg-background/90 sticky top-0 z-40 flex h-16 items-center gap-2 border-b px-3 backdrop-blur sm:px-4 md:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden shrink-0 touch-target"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
+          >
             <Menu className="size-5" aria-hidden />
           </Button>
 
-          <div className="min-w-0">
-            <nav aria-label="Breadcrumb" className="text-muted-foreground hidden text-[11px] md:block">
+          <div className="min-w-0 flex-1 pr-1">
+            <nav aria-label="Breadcrumb" className="text-muted-foreground hidden text-[11px] md:block truncate">
               NEXUS-CFR / {crumbGroup} / <span className="text-foreground">{title}</span>
             </nav>
-            <h2 className="truncate text-sm font-semibold md:text-base">{title}</h2>
+            <h2 className="truncate text-sm font-semibold sm:text-base leading-tight">{title}</h2>
           </div>
 
-          <div className="relative ml-auto hidden w-72 md:block">
+          {/* Desktop Search Bar */}
+          <div className="relative ml-auto hidden w-64 lg:w-72 md:block">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search firms, transactions, alerts"
-              className="pl-9"
+              placeholder="Search firms, txns, alerts"
+              className="pl-9 h-9 text-xs"
               aria-label="Global search"
             />
             {results.length > 0 && (
@@ -384,22 +436,33 @@ export function AppLayout() {
             )}
           </div>
 
+          {/* Mobile Search Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden shrink-0"
+            onClick={() => setSearchMobileOpen((o) => !o)}
+            aria-label="Toggle mobile search"
+          >
+            <Search className="size-4 text-muted-foreground" aria-hidden />
+          </Button>
+
           {/* Data Environment / Demo Mode Indicator */}
           {user?.organizationId === "ORG-001" || user?.email?.includes("demo") ? (
-            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/35 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300">
+            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/35 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300 shrink-0">
               <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
-              <span className="font-semibold text-[11px]">Demo Mode • Sample Data</span>
+              <span className="font-semibold text-[11px]">Demo Mode</span>
             </div>
           ) : user?.organizationName && user.organizationName !== "Operational Workspace" ? (
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/25 bg-primary/5 text-xs text-muted-foreground">
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/25 bg-primary/5 text-xs text-muted-foreground shrink-0">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              <span className="font-medium text-foreground text-[11px]">Organization:</span>
-              <span className="text-[11px] truncate max-w-40">{user.organizationName}</span>
+              <span className="font-medium text-foreground text-[11px]">Org:</span>
+              <span className="text-[11px] truncate max-w-32">{user.organizationName}</span>
             </div>
           ) : (
-            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
+            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300 shrink-0">
               <span className="size-1.5 rounded-full bg-amber-500" />
-              <span className="font-medium text-[11px]">Waiting for Your Data</span>
+              <span className="font-medium text-[11px]">Waiting for Data</span>
             </div>
           )}
 
@@ -409,11 +472,11 @@ export function AppLayout() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex shrink-0"
                 title="System Guide, Glossary & Product Tour"
               >
                 <HelpCircle className="size-4 text-primary" />
-                <span>Help & Tour</span>
+                <span className="hidden lg:inline">Help & Tour</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -437,28 +500,41 @@ export function AppLayout() {
             onClick={toggleTheme}
             aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
             title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+            className="shrink-0"
           >
-            {theme === "dark" ? <Sun className="size-5" aria-hidden /> : <Moon className="size-5" aria-hidden />}
+            {theme === "dark" ? <Sun className="size-4 sm:size-5" aria-hidden /> : <Moon className="size-4 sm:size-5" aria-hidden />}
           </Button>
 
-          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate({ to: "/app/alerts" })} aria-label={`Alerts, ${unread} unread`}>
-            <Bell className="size-5" aria-hidden />
-            {unread > 0 && <span className="bg-risk-critical text-background absolute top-1 right-1 grid size-4 place-items-center rounded-full text-[9px] font-bold">{unread}</span>}
+          {/* Alerts Bell Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative shrink-0"
+            onClick={() => navigate({ to: "/app/alerts" })}
+            aria-label={`Alerts, ${unread} unread`}
+          >
+            <Bell className="size-4 sm:size-5" aria-hidden />
+            {unread > 0 && (
+              <span className="bg-risk-critical text-background absolute top-1 right-1 grid size-4 place-items-center rounded-full text-[9px] font-bold">
+                {unread}
+              </span>
+            )}
           </Button>
 
+          {/* User Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2">
+              <Button variant="ghost" className="gap-2 px-1 sm:px-2 shrink-0">
                 <Avatar className="size-7">
                   <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-semibold">{user?.avatarInitials}</AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-44 truncate text-sm font-medium md:inline">{user?.organizationName || user?.companyName}</span>
+                <span className="hidden max-w-36 truncate text-sm font-medium xl:inline">{user?.organizationName || user?.companyName}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-2rem)]">
               <DropdownMenuLabel className="flex flex-col">
-                <span>{user?.fullName}</span>
-                <span className="text-muted-foreground text-xs font-normal">{user?.email}</span>
+                <span className="truncate">{user?.fullName}</span>
+                <span className="text-muted-foreground text-xs font-normal truncate">{user?.email}</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <div className="px-2 py-1 flex items-center justify-between">
@@ -500,9 +576,90 @@ export function AppLayout() {
           </DropdownMenu>
         </header>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6">
+        {/* Mobile Search Overlay Input */}
+        {searchMobileOpen && (
+          <div className="border-border bg-background border-b p-3 md:hidden">
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search firms, transactions, alerts..."
+                className="pl-9 h-10 text-sm"
+                autoFocus
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+            {results.length > 0 && (
+              <div className="border-border bg-popover mt-2 overflow-hidden rounded-lg border shadow-lg max-h-60 overflow-y-auto">
+                {results.map((r) => (
+                  <button
+                    key={`${r.sub}-${r.id}`}
+                    type="button"
+                    className="hover:bg-muted flex w-full flex-col items-start px-3 py-2 text-left border-b border-border/40 last:border-0"
+                    onClick={() => {
+                      setQuery("");
+                      setSearchMobileOpen(false);
+                      navigate({ to: r.to });
+                    }}
+                  >
+                    <span className="truncate text-sm font-medium">{r.label}</span>
+                    <span className="text-muted-foreground text-[11px]">{r.sub}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main Content Area */}
+        <main className="min-w-0 flex-1 p-3.5 sm:p-4 md:p-6 pb-24 lg:pb-6 overflow-x-hidden">
           <Outlet />
         </main>
+
+        {/* Mobile Bottom Navigation Bar (Android & Mobile Touchscreens) */}
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border/80 px-2 py-1 safe-pb shadow-lg"
+          aria-label="Mobile quick navigation"
+        >
+          <div className="flex items-center justify-around">
+            {mobileBottomNavItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="flex flex-col items-center justify-center py-1.5 px-2 rounded-lg text-muted-foreground hover:text-foreground data-[status=active]:text-primary data-[status=active]:font-semibold min-w-[56px] min-h-[48px] touch-target transition-colors relative"
+                activeProps={{ "aria-current": "page" }}
+              >
+                <div className="relative">
+                  <item.icon className="size-5 shrink-0" aria-hidden />
+                  {item.badge != null && (
+                    <span className="bg-risk-critical text-background absolute -top-1 -right-2 grid size-4 place-items-center rounded-full text-[9px] font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] tracking-tight mt-0.5">{item.label}</span>
+              </Link>
+            ))}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="flex flex-col items-center justify-center py-1.5 px-2 rounded-lg text-muted-foreground hover:text-foreground min-w-[56px] min-h-[48px] touch-target transition-colors"
+              aria-label="Open all navigation options"
+            >
+              <Menu className="size-5 shrink-0" aria-hidden />
+              <span className="text-[10px] tracking-tight mt-0.5">More</span>
+            </button>
+          </div>
+        </nav>
       </div>
 
       {/* Self-Explanatory Modals */}

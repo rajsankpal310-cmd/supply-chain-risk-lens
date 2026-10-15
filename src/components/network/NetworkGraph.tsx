@@ -1,4 +1,4 @@
-import { Minus, Plus, RotateCcw } from "lucide-react";
+import { HelpCircle, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ export function NetworkGraph({
   isolate = false,
   activeOnly = false,
   className,
-  height = 520,
+  height,
 }: {
   nodes: NetworkNode[];
   edges: NetworkEdge[];
@@ -35,13 +35,19 @@ export function NetworkGraph({
   isolate?: boolean;
   activeOnly?: boolean;
   className?: string;
-  height?: number;
+  height?: number | string;
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<{ node: NetworkNode; x: number; y: number } | null>(null);
+  const [showLegend, setShowLegend] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  
+  // Track pointers for touch panning and pinch-to-zoom
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const initialPinchDist = useRef<number | null>(null);
+  const initialZoom = useRef<number>(1);
+  const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const visible = useMemo(() => {
     let filteredEdges = edges;
@@ -76,26 +82,93 @@ export function NetworkGraph({
     return RISK_FILL[n.riskLevel];
   };
 
+  const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+    return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture fails
+    }
+
+    if (activePointers.current.size === 1) {
+      dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    } else if (activePointers.current.size === 2) {
+      dragStart.current = null;
+      const pts = Array.from(activePointers.current.values());
+      const p0 = pts[0];
+      const p1 = pts[1];
+      if (p0 && p1) {
+        initialPinchDist.current = getDistance(p0, p1);
+        initialZoom.current = zoom;
+      }
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!activePointers.current.has(e.pointerId)) return;
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.current.size === 1 && dragStart.current) {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      setPan({ x: dragStart.current.panX + dx, y: dragStart.current.panY + dy });
+    } else if (activePointers.current.size === 2 && initialPinchDist.current && initialPinchDist.current > 0) {
+      const pts = Array.from(activePointers.current.values());
+      const p0 = pts[0];
+      const p1 = pts[1];
+      if (p0 && p1) {
+        const currentDist = getDistance(p0, p1);
+        const scaleFactor = currentDist / initialPinchDist.current;
+        setZoom(Math.min(2.5, Math.max(0.4, initialZoom.current * scaleFactor)));
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    activePointers.current.delete(e.pointerId);
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore
+    }
+
+    if (activePointers.current.size === 1) {
+      const remaining = Array.from(activePointers.current.values())[0];
+      if (remaining) {
+        dragStart.current = { x: remaining.x, y: remaining.y, panX: pan.x, panY: pan.y };
+      }
+      initialPinchDist.current = null;
+    } else if (activePointers.current.size === 0) {
+      dragStart.current = null;
+      initialPinchDist.current = null;
+    }
+  };
+
   return (
-    <div ref={containerRef} className={cn("border-border/70 bg-card relative overflow-hidden rounded-xl border", className)}>
+    <div
+      ref={containerRef}
+      className={cn(
+        "border-border/70 bg-card relative overflow-hidden rounded-xl border select-none touch-none",
+        className
+      )}
+    >
       <svg
         viewBox="0 0 1000 760"
-        style={{ height }}
-        className="grid-backdrop w-full touch-none select-none"
+        style={{ height: height ?? undefined }}
+        className={cn(
+          "grid-backdrop w-full select-none touch-none",
+          !height && "h-[360px] sm:h-[480px] lg:h-[580px]"
+        )}
         role="img"
         aria-label="Supply chain network graph"
-        onMouseDown={(e) => {
-          drag.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-        }}
-        onMouseMove={(e) => {
-          if (!drag.current) return;
-          setPan({ x: drag.current.panX + (e.clientX - drag.current.x), y: drag.current.panY + (e.clientY - drag.current.y) });
-        }}
-        onMouseUp={() => (drag.current = null)}
-        onMouseLeave={() => {
-          drag.current = null;
-          setHoveredNode(null);
-        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
           {visible.edges.map((e) => {
@@ -151,6 +224,9 @@ export function NetworkGraph({
                 onMouseLeave={() => setHoveredNode(null)}
                 opacity={dim ? 0.35 : 1}
               >
+                {/* Large transparent touch hit area for mobile fingertips (44px min) */}
+                <circle r={Math.max(r + 12, 22)} fill="transparent" pointerEvents="all" />
+
                 {(selectedId === n.id || highlightPath.includes(n.id)) && (
                   <>
                     <circle r={r + 14} fill="var(--color-primary)" fillOpacity={0.2} className="animate-pulse" />
@@ -158,11 +234,11 @@ export function NetworkGraph({
                   </>
                 )}
                 <circle r={r} fill={fillFor(n)} fillOpacity={0.9} stroke="var(--color-background)" strokeWidth={selectedId === n.id ? 3 : 2} />
-                {(selectedId === n.id || r > 22) && (
+                {(selectedId === n.id || r > 20) && (
                   <text y={r + 14} textAnchor="middle" fontSize={11} fill="var(--color-foreground)" className="pointer-events-none font-medium">
                     {(() => {
                       const label = formatCompanyName(n.name, n.id);
-                      return label.length > 22 ? `${label.slice(0, 21)}…` : label;
+                      return label.length > 20 ? `${label.slice(0, 19)}…` : label;
                     })()}
                   </text>
                 )}
@@ -172,10 +248,10 @@ export function NetworkGraph({
         </g>
       </svg>
 
-      {/* Floating Hover Card */}
+      {/* Floating Hover Card for Pointer / Desktop Devices */}
       {hoveredNode && (
         <div
-          className="pointer-events-none absolute z-30 w-72 rounded-lg border border-border/80 bg-popover/95 p-3.5 shadow-xl backdrop-blur transition-all"
+          className="pointer-events-none hidden sm:block absolute z-30 w-72 rounded-lg border border-border/80 bg-popover/95 p-3.5 shadow-xl backdrop-blur transition-all"
           style={{
             left: Math.min(hoveredNode.x + 16, (containerRef.current?.clientWidth || 800) - 300),
             top: Math.min(hoveredNode.y + 16, (containerRef.current?.clientHeight || 600) - 220),
@@ -229,17 +305,31 @@ export function NetworkGraph({
         </div>
       )}
 
-      <div className="absolute top-3 right-3 flex flex-col gap-1">
-        <Button variant="secondary" size="icon" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2.4, z + 0.2))}>
+      {/* Floating Canvas Controls (Positioned cleanly on top-right) */}
+      <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="Zoom in"
+          className="size-8 sm:size-9 shadow-sm"
+          onClick={() => setZoom((z) => Math.min(2.4, z + 0.25))}
+        >
           <Plus className="size-4" aria-hidden />
         </Button>
-        <Button variant="secondary" size="icon" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(0.5, z - 0.2))}>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="Zoom out"
+          className="size-8 sm:size-9 shadow-sm"
+          onClick={() => setZoom((z) => Math.max(0.4, z - 0.25))}
+        >
           <Minus className="size-4" aria-hidden />
         </Button>
         <Button
           variant="secondary"
           size="icon"
           aria-label="Reset view"
+          className="size-8 sm:size-9 shadow-sm"
           onClick={() => {
             setZoom(1);
             setPan({ x: 0, y: 0 });
@@ -250,23 +340,52 @@ export function NetworkGraph({
         </Button>
       </div>
 
-      <NetworkLegend view={view} />
+      {/* Mobile Legend Toggle & Desktop Overlay */}
+      <div className="absolute bottom-3 left-3 z-20">
+        <div className="hidden sm:block">
+          <EmbeddedLegend view={view} />
+        </div>
+        <div className="sm:hidden">
+          {showLegend ? (
+            <div className="relative">
+              <EmbeddedLegend view={view} onClose={() => setShowLegend(false)} />
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 gap-1.5 text-xs shadow-md bg-background/90 backdrop-blur"
+              onClick={() => setShowLegend(true)}
+            >
+              <HelpCircle className="size-3.5" />
+              <span>Legend</span>
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-export function NetworkLegend({ view }: { view: NetworkView }) {
+function EmbeddedLegend({ view, onClose }: { view: NetworkView; onClose?: () => void }) {
   return (
-    <div className="border-border/70 bg-popover/90 text-muted-foreground absolute bottom-3 left-3 rounded-lg border p-3 text-[11px] backdrop-blur max-w-xs shadow-md">
-      <p className="text-foreground mb-1 font-semibold">Topology Legend</p>
+    <div className="border-border/70 bg-popover/95 text-muted-foreground rounded-lg border p-2.5 sm:p-3 text-[11px] backdrop-blur max-w-[280px] sm:max-w-xs shadow-lg">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="text-foreground font-semibold">Topology Legend</p>
+        {onClose && (
+          <button onClick={onClose} className="p-0.5 rounded hover:bg-muted" aria-label="Close legend">
+            <X className="size-3.5" />
+          </button>
+        )}
+      </div>
       <div className="space-y-1 text-[10px]">
         <p>• <span className="font-medium text-foreground">Node Size:</span> {view === "EXPOSURE" ? "exposure amount" : view === "IMPACT" ? "contagion impact %" : "transaction volume"}</p>
         <p>• <span className="font-medium text-foreground">Solid Line:</span> Active transaction obligation</p>
-        <p>• <span className="font-medium text-foreground">Dashed Line:</span> Completed historical relationship</p>
+        <p>• <span className="font-medium text-foreground">Dashed Line:</span> Completed relationship</p>
       </div>
-      <div className="mt-2.5 flex flex-wrap gap-2 border-t border-border/50 pt-2">
+      <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2 border-t border-border/50 pt-1.5">
         {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((l) => (
-          <span key={l} className="inline-flex items-center gap-1">
+          <span key={l} className="inline-flex items-center gap-1 text-[10px]">
             <span className="size-2 rounded-full" style={{ background: RISK_FILL[l] }} aria-hidden />
             {l.charAt(0) + l.slice(1).toLowerCase()}
           </span>
