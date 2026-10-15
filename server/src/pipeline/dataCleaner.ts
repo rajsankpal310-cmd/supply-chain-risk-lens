@@ -149,7 +149,38 @@ export class DataCleaner {
       paymentDate: rawPayDate ? this.cleanDate(rawPayDate) : null,
       creditPeriodDays: this.cleanNumber(rawCredit),
       paymentStatus: this.normalizeStatus(rawStatus),
-      raw,
+      raw: this.maskDirectIdentifiers(raw),
     };
+  }
+
+  /**
+   * Anonymization and privacy protection: Masks direct personal identifiers
+   * (emails, phone numbers, individual Aadhaar/PAN/SSN, tax IDs) to ensure
+   * data minimization and prevent PII leakage into analytics or persistence.
+   */
+  static maskDirectIdentifiers(raw: Record<string, any>): Record<string, any> {
+    if (!raw || typeof raw !== "object") return raw;
+    const sanitized: Record<string, any> = { ...raw };
+    const piiKeyPatterns = /(email|e_mail|mail|phone|mobile|cell|contact_no|aadhaar|pan|ssn|social_security|passport|personal_name|tax_id)/i;
+
+    for (const [key, val] of Object.entries(sanitized)) {
+      if (typeof val === "string" && val.trim()) {
+        const str = val.trim();
+        if (piiKeyPatterns.test(key)) {
+          if (str.includes("@")) {
+            const parts = str.split("@");
+            sanitized[key] = `${parts[0].slice(0, 2)}***@${parts[1] || "***"}`;
+          } else if (str.length > 4) {
+            sanitized[key] = `******${str.slice(-4)}`;
+          } else {
+            sanitized[key] = `****`;
+          }
+        } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str)) {
+          const parts = str.split("@");
+          sanitized[key] = `${parts[0].slice(0, 2)}***@${parts[1]}`;
+        }
+      }
+    }
+    return sanitized;
   }
 }

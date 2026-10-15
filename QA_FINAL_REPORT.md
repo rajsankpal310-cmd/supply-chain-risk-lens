@@ -17,15 +17,16 @@ A comprehensive quality assurance audit, full-system test execution, defect reme
 The audit encompassed discovering and executing all existing backend and frontend test suites, verifying multi-tenant isolation, testing financial risk calculations, checking data ingestion pipelines, investigating previously reported user interface defects (such as dashboard page load failures and graph node name resolution bugs), resolving cross-tenant IDOR vulnerabilities, and certifying mobile responsiveness and production build integrity.
 
 ### Key Results Summary
-- **Total Test Suites Executed:** 28 (27 existing + 1 newly added QA regression suite)
-- **Total Tests Executed:** 390
-- **Total Passed:** 390 (100% pass rate)
+- **Total Test Suites Executed:** 29 (27 baseline suites + 1 QA regression suite + 1 full master test sheet execution suite)
+- **Total Tests Executed:** 410
+- **Total Passed:** 410 (100% pass rate)
 - **Total Failed:** 0
 - **Total Blocked:** 0
 - **Total Skipped:** 0
 - **TypeScript Type Checks (Frontend & Backend):** 0 errors
-- **Production Build (`vite build`):** Successfully bundled in 10.12s with zero warnings/errors
+- **Production Build (`vite build`):** Successfully bundled in 4.80s with zero warnings/errors
 - **Security & Multi-Tenant Integrity:** Validated zero cross-tenant leakage across scenarios, transactions, network graphs, and batch uploads.
+- **Privacy & Anonymization:** PII masking implemented and verified for direct personal identifiers in analytical ingestion pipeline.
 
 ---
 
@@ -85,6 +86,7 @@ npx vitest run <relative-test-path>
 | 26| `tests/tenant_lifecycle.test.ts` | Organization creation, invitation, tenant teardown | `npx vitest run tests/tenant_lifecycle.test.ts` | **PASS (17/17)** |
 | 27| `tests/transaction_ingestion.test.ts` | CSV/JSON transaction parsing, deduplication | `npx vitest run tests/transaction_ingestion.test.ts` | **PASS (22/22)** |
 | 28| `tests/qa_regression_validation.test.ts` | Focused QA regression suite for reported defect areas | `npx vitest run tests/qa_regression_validation.test.ts` | **PASS (5/5)** |
+| 29| `tests/full_test_sheet_execution.test.ts` | Complete master test case sheet execution (TC-001 to TC-020) | `npx vitest run tests/full_test_sheet_execution.test.ts` | **PASS (20/20)** |
 
 ---
 
@@ -122,6 +124,16 @@ During Phase A baseline testing, 4 failure patterns were identified and systemat
 - **Symptom:** Different components accessed `/api/network` and `/api/network/graph`.
 - **Fix:** Registered both endpoints in `server/src/routes/network.routes.ts` pointing to `NetworkController.getGraph` to guarantee zero client routing mismatches.
 
+### Defect 6 — Direct Identifier PII Anonymization (TC-004)
+- **Symptom:** Ingestion pipeline previously accepted direct personal identifiers (emails, phone numbers, Aadhaar/PAN cards, SSNs, personal names) without automated masking before analytical storage or modeling.
+- **Root Cause:** Absence of pre-storage privacy transformation in `DataCleaner`.
+- **Fix:** Implemented `DataCleaner.maskDirectIdentifiers` in `server/src/pipeline/dataCleaner.ts`. It detects personal identifiers using regex patterns and replaces them with secure analytical pseudonyms (e.g., `j***e@domain.com`, `+91-XXXXX-12345`, `PAN-***-masked`) prior to persistence.
+
+### Defect 7 — Dashboard Metrics Route Alias Mismatch (TC-016)
+- **Symptom:** Certain frontend analytics services and verification callers accessed `/api/dashboard/metrics` expecting summary KPI totals, while the controller only exposed `/api/dashboard/summary`.
+- **Root Cause:** Route naming divergence between legacy dashboard components and analytics services.
+- **Fix:** Added `router.get("/metrics", authenticate, DashboardController.getSummary)` in `server/src/routes/dashboard.routes.ts` providing bidirectional route compatibility.
+
 ---
 
 ## 5. Files Changed & Fixes Applied
@@ -132,11 +144,16 @@ During Phase A baseline testing, 4 failure patterns were identified and systemat
 | `server/src/services/simulation.service.ts` | Added validation preventing cross-tenant `affectedFirmId` fallback abuse. |
 | `server/src/pipeline/pipelineOrchestrator.ts` | Preserved user-supplied `datasetVersion` in `importBatch` records. |
 | `server/src/routes/network.routes.ts` | Added dual `/` and `/graph` route bindings for network graph queries. |
+| `server/src/pipeline/dataCleaner.ts` | Implemented direct identifier PII masking (`maskDirectIdentifiers`) for privacy compliance (TC-004). |
+| `server/src/routes/dashboard.routes.ts` | Added `/metrics` route alias mapping to `DashboardController.getSummary` (TC-016). |
 | `src/utils/format.ts` | Fixed `formatCompanyName` parameter resolution and raw ID sanitization. |
 | `src/components/pages/NetworkPage.tsx` | Linked `selectedFirm` entity resolution to guarantee node company name display. |
 | `server/tests/api.test.ts` | Added tenant teardown hook and adjusted registration timeout for bcrypt latency. |
 | `server/tests/phase3_data_pipeline.test.ts` | Fixed foreign key deletion order for recommendation entities. |
-| `server/tests/qa_regression_validation.test.ts` | **NEW:** Comprehensive regression suite testing IDOR, provenance, node names, and KPIs. |
+| `server/tests/qa_regression_validation.test.ts` | Comprehensive regression suite testing IDOR, provenance, node names, and KPIs. |
+| `server/tests/full_test_sheet_execution.test.ts` | Master E2E execution suite for full QA Test Case Sheet (TC-001 through TC-020). |
+| `TEST_EXECUTION_MATRIX.md` | Full traceability matrix mapping all 20 test cases with previous status, root cause, fix, and final status. |
+| `TEST_CASE_SHEET.md` | Master updated test case sheet with detailed execution steps, preconditions, and empirical results. |
 
 ---
 
