@@ -375,7 +375,7 @@ export class PipelineOrchestrator {
             sourceOrg: provenance.sourceOrg,
             sourceUrl: provenance.sourceUrl,
             sourceDate: provenance.sourceDate,
-            datasetVersion: contentFingerprint,
+            datasetVersion: provenance.datasetVersion || contentFingerprint,
             license: provenance.license,
             dataGranularity: provenance.dataGranularity,
             status: "IMPORTED",
@@ -385,7 +385,7 @@ export class PipelineOrchestrator {
             rejectedCount: rawRows.length - acceptedRows.length,
             duplicateCount: scorecard.exactDuplicateCount,
             dataStatus: provenance.dataStatus,
-            qualityReport: JSON.stringify(scorecard),
+            qualityReport: JSON.stringify({ ...scorecard, contentFingerprint }),
             rawSample: JSON.stringify(rawRows.slice(0, 5)),
           },
         });

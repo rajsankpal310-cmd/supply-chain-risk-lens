@@ -42,7 +42,14 @@ export class SimulationService {
     const firms = await FirmRepository.findAll(organizationId);
     const relationships = await RelationshipRepository.findAll(organizationId);
 
-    const rootFirm = firms.find((f: any) => f.id === input.affectedFirmId) || firms[0];
+    if (input.affectedFirmId) {
+      const specified = firms.find((f: any) => f.id === input.affectedFirmId);
+      if (!specified) {
+        throw { status: 404, message: "This resource is not available in your organization." };
+      }
+    }
+
+    const rootFirm = (input.affectedFirmId ? firms.find((f: any) => f.id === input.affectedFirmId) : null) || firms[0];
     if (!rootFirm) {
       throw { status: 404, message: "This resource is not available in your organization." };
     }

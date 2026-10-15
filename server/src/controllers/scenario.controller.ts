@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { ScenarioRepository } from "../repositories/scenario.repository";
 import { ScenarioService } from "../services/scenario.service";
 import { SimulationService } from "../services/simulation.service";
 import { sendSuccess } from "../utils/response";
@@ -57,8 +58,14 @@ export class ScenarioController {
   static async runScenario(req: Request, res: Response, next: NextFunction) {
     try {
       const organizationId = (req as any).user.organizationId;
+      const scenarioId = String(req.params['id']);
+      const existing = await ScenarioRepository.findById(scenarioId);
+      if (existing && existing.organizationId !== organizationId) {
+        throw { status: 404, message: "This resource is not available in your organization." };
+      }
       const run = await SimulationService.runSimulation(organizationId, {
-        scenarioId: String(req.params['id']),
+        scenarioId,
+        ...(existing || {}),
         ...req.body,
       });
       return sendSuccess(res, run, 201);

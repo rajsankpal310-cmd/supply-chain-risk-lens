@@ -71,7 +71,12 @@ export function NetworkPage() {
   const selectedNode = useMemo(() => {
     if (!selectedId) return null;
     const direct = nodes.find((n) => n.id === selectedId);
-    if (direct) return direct;
+    if (direct) {
+      return {
+        ...direct,
+        name: formatCompanyName(direct.name, selectedFirm?.name, direct.id),
+      };
+    }
     if (selectedFirm) {
       return {
         id: selectedFirm.id,

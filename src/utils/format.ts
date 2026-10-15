@@ -78,15 +78,35 @@ export function formatCompanyName(
     return str;
   };
 
-  const clean = sanitize(name) ?? sanitize(fallbackName);
+  const cleanName = sanitize(name);
+  const cleanFallbackName = sanitize(fallbackName);
+  const cleanId = sanitize(fallbackId);
+
+  // If only 2 arguments are provided and second argument looks like an ID, treat it as fallbackId
+  let resolvedName = cleanName;
+  let resolvedFallbackName = cleanFallbackName;
+  let resolvedId = cleanId;
+
+  if (cleanFallbackName && !cleanId) {
+    if (/^(FIRM|BUYER|SUPPLIER|ORG|TXN|CUST|VEND)[-_]/i.test(cleanFallbackName) || /^FIRM-\d+/i.test(cleanFallbackName)) {
+      resolvedId = cleanFallbackName;
+      resolvedFallbackName = null;
+    }
+  }
+
+  // If primary name is merely the raw ID and a fallback name exists, prefer the fallback name
+  if (resolvedName && resolvedId && resolvedName.toLowerCase() === resolvedId.toLowerCase()) {
+    resolvedName = resolvedFallbackName ?? null;
+  }
+
+  const clean = resolvedName ?? resolvedFallbackName;
   if (clean) return clean;
 
-  const idClean = sanitize(fallbackId);
-  if (idClean) {
-    if (/^FIRM-\d+$/i.test(idClean)) {
-      return `Firm ${idClean.toUpperCase()}`;
+  if (resolvedId) {
+    if (/^FIRM-\d+$/i.test(resolvedId)) {
+      return `Firm ${resolvedId.toUpperCase()}`;
     }
-    return `Counterparty (${idClean})`;
+    return `Counterparty (${resolvedId})`;
   }
 
   return "Unknown Counterparty";

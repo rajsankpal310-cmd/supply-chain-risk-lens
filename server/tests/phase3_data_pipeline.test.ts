@@ -43,6 +43,17 @@ describe("NEXUS-CFR Phase 3 — Real Data Foundation Automated Test Suite", () =
             ],
           },
         });
+        await prisma.recommendation.deleteMany({
+          where: {
+            organizationId: "ORG-001",
+            firmId: {
+              notIn: [
+                "FIRM-A-01", "FIRM-A-02", "FIRM-A-03", "FIRM-A-04", "FIRM-A-05", "FIRM-A-06",
+                "FIRM-A-07", "FIRM-A-08", "FIRM-A-09", "FIRM-A-10", "FIRM-A-11", "FIRM-A-12",
+              ],
+            },
+          },
+        });
         await prisma.firm.deleteMany({
           where: {
             organizationId: "ORG-001",

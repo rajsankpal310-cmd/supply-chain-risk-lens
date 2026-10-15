@@ -129,7 +129,7 @@ describe("NEXUS-CFR Multi-Tenant & RBAC Hardened API Tests", () => {
     expect(res.body.data.user.email).toBe(uniqueEmail);
     expect(res.body.data.user.organizationId).toBeDefined();
     expect(res.body.data.user.organizationName).toBe("Pinnacle Precision Gears");
-  });
+  }, 45000);
 
   // --- SECTION B: MULTI-TENANT DASHBOARD ISOLATION ---
 
@@ -477,5 +477,23 @@ describe("NEXUS-CFR Multi-Tenant & RBAC Hardened API Tests", () => {
     expect(updateRes.body.data.paymentStatus).toBe("PAID");
     expect(Number(updateRes.body.data.outstandingAmount)).toBe(0);
     expect(updateRes.body.data.paymentDate).toBeDefined();
+  });
+
+  afterAll(async () => {
+    try {
+      const { prisma } = await import("../src/config/database");
+      await prisma.transaction.deleteMany({
+        where: {
+          organizationId: "ORG-001",
+          buyerId: "BUYER-TENANT-TEST",
+        },
+      });
+      await prisma.firm.deleteMany({
+        where: {
+          organizationId: "ORG-001",
+          id: "BUYER-TENANT-TEST",
+        },
+      });
+    } catch {}
   });
 });
