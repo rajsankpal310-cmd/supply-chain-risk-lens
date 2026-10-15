@@ -70,7 +70,6 @@ export function AnalystDashboard({
     { key: "risk", header: "Risk", align: "right", render: (r) => <RiskBadge level={r.riskLevel} score={r.riskScore} /> },
   ];
 
-  const isDemo = user?.organizationId === "ORG-001" || user?.email?.includes("demo");
   const isEmptySme = data.executiveSummary?.totalFirmsCount === 0;
 
   if (isEmptySme) {
@@ -128,23 +127,6 @@ export function AnalystDashboard({
           </div>
         }
       />
-
-      {/* Demo Mode Notice */}
-      {isDemo && (
-        <div className="rounded-xl border border-purple-500/35 bg-purple-500/5 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2.5">
-            <Badge variant="outline" className="border-purple-500/50 bg-purple-500/15 text-purple-700 dark:text-purple-300 font-semibold text-[10px]">
-              DEMO ORGANIZATION
-            </Badge>
-            <span className="text-muted-foreground">
-              Viewing <strong className="text-foreground">Apex Manufacturing Consortium</strong> with verified presentation sample data. Not real SME corporate financials.
-            </span>
-          </div>
-          <Badge variant="secondary" className="text-[10px] self-start sm:self-auto font-mono">
-            Demo Mode • Sample Data
-          </Badge>
-        </div>
-      )}
  
 
       {/* Analyst Modeling Action Bar */}

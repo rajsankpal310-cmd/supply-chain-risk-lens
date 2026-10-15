@@ -9,13 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
-import { DataGovernanceAuditTab } from "@/components/upload/DataGovernanceAuditTab";
-import { ShieldCheck, Sliders, Users } from "lucide-react";
+import { Sliders, Users } from "lucide-react";
 
 export function SettingsPage() {
   const { user, updateProfile } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<"general" | "team" | "governance">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "team">("general");
 
   // Form state
   const [companyName, setCompanyName] = useState(user?.companyName ?? "Sundaram Auto Components");
@@ -50,7 +49,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Administration & Workspace Settings"
-        description="Configure organization preferences, manage team seats, risk thresholds, and inspect technical data governance."
+        description="Configure organization preferences, manage team seats, and risk thresholds."
       />
 
       {/* Primary Tab Navigation */}
@@ -70,14 +69,6 @@ export function SettingsPage() {
           onClick={() => setActiveTab("team")}
         >
           <Users className="size-3.5" /> Team Management
-        </Button>
-        <Button
-          variant={activeTab === "governance" ? "default" : "outline"}
-          size="sm"
-          className="text-xs font-semibold gap-1.5"
-          onClick={() => setActiveTab("governance")}
-        >
-          <ShieldCheck className="size-3.5" /> Data Foundation & ML Governance
         </Button>
       </div>
 
@@ -177,13 +168,6 @@ export function SettingsPage() {
 
       {/* Tab 2: Team Management */}
       {activeTab === "team" && <TeamManagementTab />}
-
-      {/* Tab 3: Data Foundation & ML Governance */}
-      {activeTab === "governance" && (
-        <div className="space-y-4">
-          <DataGovernanceAuditTab />
-        </div>
-      )}
     </div>
   );
 }

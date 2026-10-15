@@ -237,16 +237,6 @@ export function SimulatorPage({ initialTab = "run" }: { initialTab?: "run" | "hi
       {/* Simulation Result Output */}
       {simulationResult && (
         <div className="space-y-6">
-          {/* Scenario Disclaimer Banner */}
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-700 dark:text-amber-300">
-            <span className="font-medium">
-              <strong>Hypothetical Simulation Scenario:</strong> Results are simulated stress projections under selected shock assumptions and do not modify live ledger records or actual invoice statuses.
-            </span>
-            <span className="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded border border-amber-500/40 bg-amber-500/20 shrink-0">
-              Simulated Projection
-            </span>
-          </div>
-
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <CheckCircle2 className="text-risk-low size-5" />
