@@ -30,6 +30,7 @@ import { ChartCard, axisProps, tooltipStyle } from "@/components/charts/ChartCar
 import { RiskBadge, StatusBadge } from "@/components/common/badges";
 import { MetricCard } from "@/components/common/MetricCard";
 import { PageHeader } from "@/components/common/PageHeader";
+import { WidgetErrorBoundary } from "@/components/common/WidgetErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -203,150 +204,154 @@ export function SmeAdminDashboard({
       </section>
 
       {/* Operational Attention Grid: Overdue Receivables & Ingestion Provenance */}
-      <section className="grid gap-4 lg:grid-cols-3">
-        {/* Overdue Collection Triage */}
-        <Card className="p-5 lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Clock className="size-4 text-amber-500" />
-                Collection Triage — High Delay Receivables
-              </h3>
-              <p className="text-xs text-muted-foreground">Invoices requiring immediate working capital follow-up</p>
-            </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/app/transactions">
-                View all <ArrowRight className="size-3.5 ml-1" />
-              </Link>
-            </Button>
-          </div>
-
-          {overdueTxns.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No overdue invoices currently requiring collection follow-up.</p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Buyer</TableHead>
-                    <TableHead className="text-right">Outstanding</TableHead>
-                    <TableHead className="text-right">Due Date</TableHead>
-                    <TableHead className="text-right">Delay</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {overdueTxns.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-mono text-xs font-medium">{t.id}</TableCell>
-                      <TableCell className="font-medium text-xs truncate max-w-40">{t.buyerName}</TableCell>
-                      <TableCell className="font-mono text-xs text-right font-semibold">{formatINR(t.outstandingAmount)}</TableCell>
-                      <TableCell className="text-xs text-right text-muted-foreground">{formatDate(t.dueDate)}</TableCell>
-                      <TableCell className="font-mono text-xs text-right text-destructive font-semibold">{t.delayDays}d</TableCell>
-                      <TableCell className="text-right"><StatusBadge status={t.status} /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
-
-        {/* Data Provenance & Ledger Health Card */}
-        <Card className="p-5 space-y-3.5 flex flex-col justify-between">
-          <div>
+      <WidgetErrorBoundary title="Operational Attention & Receivables Triage">
+        <section className="grid gap-4 lg:grid-cols-3">
+          {/* Overdue Collection Triage */}
+          <Card className="p-5 lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <Database className="size-4 text-primary" />
-                Ingestion Health
-              </h3>
-              <Badge variant="outline" className="text-[10px] font-mono">
-                {data.dataProvenanceSummary?.totalBatches ?? 0} Batches
-              </Badge>
+              <div>
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Clock className="size-4 text-amber-500" />
+                  Collection Triage — High Delay Receivables
+                </h3>
+                <p className="text-xs text-muted-foreground">Invoices requiring immediate working capital follow-up</p>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/app/transactions">
+                  View all <ArrowRight className="size-3.5 ml-1" />
+                </Link>
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">PostgreSQL ledger audit and provenance records</p>
-          </div>
 
-          {batch ? (
-            <div className="space-y-2.5 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Latest Batch:</span>
-                <span className="font-mono font-medium">{batch.id.slice(0, 12)}…</span>
+            {overdueTxns.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No overdue invoices currently requiring collection follow-up.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>Buyer</TableHead>
+                      <TableHead className="text-right">Outstanding</TableHead>
+                      <TableHead className="text-right">Due Date</TableHead>
+                      <TableHead className="text-right">Delay</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {overdueTxns.map((t, idx) => (
+                      <TableRow key={t.id || `overdue-${idx}`}>
+                        <TableCell className="font-mono text-xs font-medium">{t.id || "—"}</TableCell>
+                        <TableCell className="font-medium text-xs truncate max-w-40">{t.buyerName || "Counterparty"}</TableCell>
+                        <TableCell className="font-mono text-xs text-right font-semibold">{formatINR(t.outstandingAmount)}</TableCell>
+                        <TableCell className="text-xs text-right text-muted-foreground">{formatDate(t.dueDate)}</TableCell>
+                        <TableCell className="font-mono text-xs text-right text-destructive font-semibold">{t.delayDays ?? 0}d</TableCell>
+                        <TableCell className="text-right"><StatusBadge status={t.status} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Source Type:</span>
-                <span className="font-medium">{batch.sourceType.replace(/_/g, " ")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Dataset Label:</span>
-                <span className="font-medium truncate max-w-36">{batch.sourceName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Records Ingested:</span>
-                <span className="font-mono font-semibold">{batch.recordCount} rows</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Data Status:</span>
-                <Badge variant="secondary" className="text-[10px] font-medium text-emerald-500">
-                  {batch.dataStatus}
+            )}
+          </Card>
+
+          {/* Data Provenance & Ledger Health Card */}
+          <Card className="p-5 space-y-3.5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Database className="size-4 text-primary" />
+                  Ingestion Health
+                </h3>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {data.dataProvenanceSummary?.totalBatches ?? 0} Batches
                 </Badge>
               </div>
+              <p className="text-xs text-muted-foreground mt-0.5">PostgreSQL ledger audit and provenance records</p>
             </div>
-          ) : (
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
-              <FileCheck className="size-6 mx-auto mb-1 text-muted-foreground" />
-              Primary transactions actively verified in database.
-            </div>
-          )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs gap-2"
-            onClick={() => navigate({ to: "/app/upload" })}
-          >
-            <FileSpreadsheet className="size-3.5" /> Ingestion Audit Trail
-          </Button>
-        </Card>
-      </section>
+            {batch ? (
+              <div className="space-y-2.5 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Latest Batch:</span>
+                  <span className="font-mono font-medium">{batch.id ? `${batch.id.slice(0, 12)}…` : "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Source Type:</span>
+                  <span className="font-medium">{batch.sourceType ? batch.sourceType.replace(/_/g, " ") : "Primary Ingestion"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Dataset Label:</span>
+                  <span className="font-medium truncate max-w-36">{batch.sourceName || "Primary Ledger"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Records Ingested:</span>
+                  <span className="font-mono font-semibold">{batch.recordCount ?? 0} rows</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data Status:</span>
+                  <Badge variant="secondary" className="text-[10px] font-medium text-emerald-500">
+                    {batch.dataStatus || "ACTIVE"}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
+                <FileCheck className="size-6 mx-auto mb-1 text-muted-foreground" />
+                Primary transactions actively verified in database.
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs gap-2"
+              onClick={() => navigate({ to: "/app/upload" })}
+            >
+              <FileSpreadsheet className="size-3.5" /> Ingestion Audit Trail
+            </Button>
+          </Card>
+        </section>
+      </WidgetErrorBoundary>
 
       {/* Charts Section */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="Payment delay trend"
-          description="Average settlement delay in days"
-          tooltip="Rolling monthly average of days between due date and actual payment."
-        >
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={data.paymentDelayTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="date" {...axisProps} />
-              <YAxis {...axisProps} width={32} />
-              <Tooltip {...tooltipStyle} />
-              <Line type="monotone" dataKey="delay" stroke="var(--color-chart-1)" strokeWidth={2} dot={false} name="Avg delay (days)" />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      <WidgetErrorBoundary title="Payment Delay & Outstanding Charts">
+        <section className="grid gap-4 lg:grid-cols-2">
+          <ChartCard
+            title="Payment delay trend"
+            description="Average settlement delay in days"
+            tooltip="Rolling monthly average of days between due date and actual payment."
+          >
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={data.paymentDelayTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="date" {...axisProps} />
+                <YAxis {...axisProps} width={32} />
+                <Tooltip {...tooltipStyle} />
+                <Line type="monotone" dataKey="delay" stroke="var(--color-chart-1)" strokeWidth={2} dot={false} name="Avg delay (days)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
 
-        <ChartCard title="Outstanding receivables" description="Unsettled ledger exposure over time" tooltip="Total open invoice value at each month end.">
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={data.outstandingTrend}>
-              <defs>
-                <linearGradient id="outstandingFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-2)" stopOpacity={0.45} />
-                  <stop offset="100%" stopColor="var(--color-chart-2)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="date" {...axisProps} />
-              <YAxis {...axisProps} width={52} tickFormatter={(v: number) => formatINR(v)} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => formatINR(v)} />
-              <Area type="monotone" dataKey="amount" stroke="var(--color-chart-2)" strokeWidth={2} fill="url(#outstandingFill)" name="Outstanding" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </section>
+          <ChartCard title="Outstanding receivables" description="Unsettled ledger exposure over time" tooltip="Total open invoice value at each month end.">
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={data.outstandingTrend}>
+                <defs>
+                  <linearGradient id="outstandingFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-chart-2)" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="var(--color-chart-2)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="date" {...axisProps} />
+                <YAxis {...axisProps} width={52} tickFormatter={(v: number) => formatINR(v)} />
+                <Tooltip {...tooltipStyle} formatter={(v: number) => formatINR(v)} />
+                <Area type="monotone" dataKey="amount" stroke="var(--color-chart-2)" strokeWidth={2} fill="url(#outstandingFill)" name="Outstanding" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </section>
+      </WidgetErrorBoundary>
 
       {/* Critical Alerts Bar */}
       {criticalAlerts.length > 0 && (

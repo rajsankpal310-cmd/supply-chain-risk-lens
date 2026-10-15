@@ -12,7 +12,21 @@ export class DashboardService {
   }
 
   static async getSummary(organizationId: string, userRole?: string) {
-    const [firms, relationships, totalTxnCount, txnAggregates, delayedAggregates, transactions] = await Promise.all([
+    const [
+      firms,
+      relationships,
+      totalTxnCount,
+      txnAggregates,
+      delayedAggregates,
+      transactions,
+      overdueTxnsRaw,
+      latestBatch,
+      totalBatches,
+      activeDeadlocks,
+      simulationsCount,
+      latestSimulation,
+      reportsCount,
+    ] = await Promise.all([
       FirmRepository.findAll(organizationId),
       RelationshipRepository.findAll(organizationId),
       prisma.transaction.count({ where: { organizationId } }),
@@ -35,6 +49,42 @@ export class DashboardService {
         },
         orderBy: { invoiceDate: "desc" },
         take: 1000,
+      }),
+      prisma.transaction.findMany({
+        where: {
+          organizationId,
+          OR: [
+            { paymentStatus: { in: ["DELAYED", "CRITICAL"] } },
+            { paymentDelayDays: { gt: 0 } },
+          ],
+        },
+        orderBy: [{ paymentDelayDays: "desc" }, { invoiceDate: "desc" }],
+        take: 5,
+        include: {
+          buyer: { select: { id: true, name: true } },
+          sme: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.importBatch.findFirst({
+        where: { organizationId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.importBatch.count({
+        where: { organizationId },
+      }),
+      prisma.deadlock.findMany({
+        where: { organizationId, resolved: false },
+      }),
+      prisma.simulationRun.count({
+        where: { organizationId },
+      }),
+      prisma.simulationRun.findFirst({
+        where: { organizationId },
+        orderBy: { startedAt: "desc" },
+        include: { scenario: true },
+      }),
+      prisma.report.count({
+        where: { organizationId, status: "READY" },
       }),
     ]);
 
@@ -220,15 +270,8 @@ export class DashboardService {
       }));
 
     // Role-specific operational data for SME_ADMIN scoped to organization
-    const latestBatch = await prisma.importBatch.findFirst({
-      where: { organizationId },
-      orderBy: { createdAt: "desc" },
-    });
-    const totalBatches = await prisma.importBatch.count({
-      where: { organizationId },
-    });
     const dataProvenanceSummary = {
-      totalBatches,
+      totalBatches: totalBatches || 0,
       lastBatch: latestBatch
         ? {
             id: latestBatch.id,
@@ -241,39 +284,25 @@ export class DashboardService {
         : null,
     };
 
-    const overdueTransactions = transactions
-      .filter((t: any) => t.paymentStatus === "DELAYED" || t.paymentStatus === "CRITICAL" || (t.paymentDelayDays && t.paymentDelayDays > 0))
-      .slice(0, 5)
-      .map((t: any) => ({
-        id: t.id,
-        buyerId: t.buyerId,
-        buyerName: t.buyer?.name || t.buyerId,
-        smeId: t.smeId,
-        smeName: t.sme?.name || t.smeId,
-        invoiceAmount: t.invoiceAmount,
-        outstandingAmount: t.outstandingAmount,
-        dueDate: t.dueDate,
-        delayDays: t.paymentDelayDays || 0,
-        status: t.paymentStatus,
-        riskLevel: t.riskLevel,
-      }));
+    const overdueTransactions = (overdueTxnsRaw || []).map((t: any) => ({
+      id: t.id || `TXN-${Math.random().toString(36).slice(2, 8)}`,
+      buyerId: t.buyerId || "UNKNOWN",
+      buyerName: t.buyer?.name || t.buyerId || "Counterparty",
+      smeId: t.smeId || "UNKNOWN",
+      smeName: t.sme?.name || t.smeId || "Primary SME",
+      invoiceAmount: Number(t.invoiceAmount) || 0,
+      outstandingAmount: Number(t.outstandingAmount) || 0,
+      dueDate: t.dueDate ? (t.dueDate instanceof Date ? t.dueDate.toISOString() : String(t.dueDate)) : null,
+      delayDays: Number(t.paymentDelayDays) || 0,
+      status: (t.paymentStatus || (Number(t.paymentDelayDays) > 0 ? "DELAYED" : "PENDING")),
+      riskLevel: (t.riskLevel || (Number(t.paymentDelayDays) > 30 ? "HIGH" : "MEDIUM")),
+    }));
 
     // Analytical summary for ANALYST scoped to organization
-    const activeDeadlocks = await prisma.deadlock.findMany({
-      where: { organizationId, resolved: false },
-    });
-    const simulationsCount = await prisma.simulationRun.count({
-      where: { organizationId },
-    });
-    const latestSimulation = await prisma.simulationRun.findFirst({
-      where: { organizationId },
-      orderBy: { startedAt: "desc" },
-      include: { scenario: true },
-    });
     const analyticalSummary = {
-      activeDeadlocksCount: activeDeadlocks.length,
-      totalLockedExposure: activeDeadlocks.reduce((sum, d) => sum + (d.totalExposure || 0), 0),
-      simulationsCount,
+      activeDeadlocksCount: (activeDeadlocks || []).length,
+      totalLockedExposure: (activeDeadlocks || []).reduce((sum: number, d: any) => sum + (d.totalExposure || 0), 0),
+      simulationsCount: simulationsCount || 0,
       latestSimulation: latestSimulation
         ? {
             id: latestSimulation.id,
@@ -287,13 +316,12 @@ export class DashboardService {
     };
 
     // Executive summary for VIEWER scoped to organization
-    const reportsCount = await prisma.report.count({ where: { organizationId, status: "READY" } });
     const criticalFirmsCount = firms.filter((f: any) => f.riskLevel === "CRITICAL").length;
     const executiveSummary = {
       portfolioHealthStatus: overallRiskIndex < 40 ? "RESILIENT" : overallRiskIndex < 65 ? "MODERATE_RISK" : "CRITICAL_ATTENTION",
       criticalFirmsCount,
       atRiskFirmsCount,
-      reportsCount,
+      reportsCount: reportsCount || 0,
       totalFirmsCount: firms.length,
       resilienceIndex: Math.max(0, 100 - cascadeRisk),
     };

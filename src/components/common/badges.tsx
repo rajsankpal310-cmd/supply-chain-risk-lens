@@ -10,8 +10,9 @@ const RISK_META: Record<RiskLevel, { label: string; className: string; Icon: typ
   CRITICAL: { label: "Critical", className: "bg-risk-critical/15 text-risk-critical border-risk-critical/40", Icon: OctagonAlert, help: "Immediate action recommended; spread to connected firms is likely." },
 };
 
-export function RiskBadge({ level, score, className }: { level: RiskLevel; score?: number; className?: string }) {
-  const meta = RISK_META[level];
+export function RiskBadge({ level, score, className }: { level?: RiskLevel | string | null; score?: number; className?: string }) {
+  const normalized = (level?.toUpperCase() ?? "LOW") as RiskLevel;
+  const meta = RISK_META[normalized] ?? RISK_META.LOW;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -40,8 +41,9 @@ const STATUS_META: Record<PaymentStatus, { label: string; className: string; Ico
   CRITICAL: { label: "Critical", className: "bg-risk-critical/15 text-risk-critical border-risk-critical/40", Icon: OctagonAlert },
 };
 
-export function StatusBadge({ status, className }: { status: PaymentStatus; className?: string }) {
-  const meta = STATUS_META[status];
+export function StatusBadge({ status, className }: { status?: PaymentStatus | string | null; className?: string }) {
+  const normalized = (status?.toUpperCase() ?? "PENDING") as PaymentStatus;
+  const meta = STATUS_META[normalized] ?? STATUS_META.PENDING;
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium", meta.className, className)}>
       <meta.Icon className="size-3.5 shrink-0" aria-hidden />

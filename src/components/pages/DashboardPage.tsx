@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { CardsSkeleton, ErrorState } from "@/components/common/states";
+import { WidgetErrorBoundary } from "@/components/common/WidgetErrorBoundary";
 import { SmeAdminDashboard } from "@/components/dashboard/SmeAdminDashboard";
 import { AnalystDashboard } from "@/components/dashboard/AnalystDashboard";
 import { ViewerDashboard } from "@/components/dashboard/ViewerDashboard";
@@ -17,7 +18,7 @@ export function DashboardPage() {
     return (
       <ErrorState
         title="Could not load the dashboard"
-        description="Something went wrong while computing risk metrics."
+        description={summary.error instanceof Error ? summary.error.message : "Something went wrong while computing risk metrics."}
         onRetry={() => summary.refetch()}
       />
     );
@@ -31,37 +32,32 @@ export function DashboardPage() {
     alerts.refetch();
   };
 
-  if (role === "SME_ADMIN") {
-    return (
-      <SmeAdminDashboard
-        data={data}
-        alerts={alertList}
-        user={user}
-        onRefresh={handleRefresh}
-        isFetching={summary.isFetching || alerts.isFetching}
-      />
-    );
-  }
-
-  if (role === "ANALYST") {
-    return (
-      <AnalystDashboard
-        data={data}
-        user={user}
-        onRefresh={handleRefresh}
-        isFetching={summary.isFetching || alerts.isFetching}
-      />
-    );
-  }
-
-  // Default to VIEWER for VIEWER role or unassigned/guest sessions
   return (
-    <ViewerDashboard
-      data={data}
-      alerts={alertList}
-      user={user}
-      onRefresh={handleRefresh}
-      isFetching={summary.isFetching || alerts.isFetching}
-    />
+    <WidgetErrorBoundary title="Dashboard Workspace" fallbackMessage="An issue occurred while rendering the dashboard view.">
+      {role === "SME_ADMIN" ? (
+        <SmeAdminDashboard
+          data={data}
+          alerts={alertList}
+          user={user}
+          onRefresh={handleRefresh}
+          isFetching={summary.isFetching || alerts.isFetching}
+        />
+      ) : role === "ANALYST" ? (
+        <AnalystDashboard
+          data={data}
+          user={user}
+          onRefresh={handleRefresh}
+          isFetching={summary.isFetching || alerts.isFetching}
+        />
+      ) : (
+        <ViewerDashboard
+          data={data}
+          alerts={alertList}
+          user={user}
+          onRefresh={handleRefresh}
+          isFetching={summary.isFetching || alerts.isFetching}
+        />
+      )}
+    </WidgetErrorBoundary>
   );
 }
