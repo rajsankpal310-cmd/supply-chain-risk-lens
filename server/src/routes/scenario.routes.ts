@@ -12,6 +12,7 @@ router.get("/:id", authenticate, ScenarioController.getScenarioById);
 router.post("/", authenticate, authorize("SME_ADMIN", "ANALYST"), validate(scenarioSchema), ScenarioController.createScenario);
 router.put("/:id", authenticate, authorize("SME_ADMIN", "ANALYST"), ScenarioController.updateScenario);
 router.delete("/:id", authenticate, authorize("SME_ADMIN"), ScenarioController.deleteScenario);
+router.post("/run", authenticate, authorize("SME_ADMIN", "ANALYST"), ScenarioController.runScenario);
 router.post("/:id/run", authenticate, authorize("SME_ADMIN", "ANALYST"), ScenarioController.runScenario);
 
 export default router;

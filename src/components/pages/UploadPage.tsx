@@ -8,7 +8,6 @@ import {
   Database,
   Download,
   FileCheck,
-  FileSpreadsheet,
   FileText,
   History,
   Info,
@@ -36,8 +35,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/context/AuthContext";
 import { CANONICAL_SCHEMA, EXPECTED_COLUMNS, uploadService } from "@/services/dataServices";
-import { EnterpriseConnectorsTab } from "@/components/upload/EnterpriseConnectorsTab";
-import { RealDataAcquisitionTab } from "@/components/upload/RealDataAcquisitionTab";
 import type { QualityScorecard, ValidationSummary } from "@/types";
 import { downloadFile, formatDate, formatINR } from "@/utils/format";
 
@@ -58,7 +55,7 @@ export function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(0);
-  const [activeTab, setActiveTab] = useState<"pipeline" | "history" | "acquisition" | "connectors">("pipeline");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "history">("pipeline");
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [parsed, setParsed] = useState<{ headers: string[]; rows: Record<string, string>[] } | null>(null);
@@ -308,8 +305,6 @@ export function UploadPage() {
 
   const scorecard = summary?.scorecard;
 
-  const isDemo = user?.organizationId === "ORG-001" || user?.email?.includes("demo");
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -334,32 +329,10 @@ export function UploadPage() {
           >
             <History className="size-3.5" /> Import History
           </Button>
-          {isDemo && (
-            <Button
-              variant={activeTab === "acquisition" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setActiveTab("acquisition")}
-              className="text-xs gap-1.5"
-            >
-              <FileSpreadsheet className="size-3.5 text-emerald-400" /> Sample Ledgers (Demo)
-            </Button>
-          )}
-          <Button
-            variant={activeTab === "connectors" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("connectors")}
-            className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <Layers className="size-3.5" /> Advanced Integrations
-          </Button>
         </div>
       </div>
 
-      {activeTab === "acquisition" ? (
-        <RealDataAcquisitionTab onSwitchToConnectors={() => setActiveTab("connectors")} />
-      ) : activeTab === "connectors" ? (
-        <EnterpriseConnectorsTab />
-      ) : activeTab === "history" ? (
+      {activeTab === "history" ? (
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>

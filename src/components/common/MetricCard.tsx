@@ -26,26 +26,37 @@ export function MetricCard({
   const up = (trend ?? 0) >= 0;
   const bad = invertTrend ? up : !up;
   return (
-    <Card className={cn("gap-0 p-3.5 sm:p-5", className)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase truncate">
-          <span className="truncate">{label}</span>
+    <Card className={cn("flex flex-col justify-between gap-2.5 p-4 sm:p-5 overflow-hidden border-border/70 bg-card shadow-xs", className)}>
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+          <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase leading-normal break-words">
+            {label}
+          </span>
           {tooltip && <MetricHint text={tooltip} />}
         </div>
-        {status && <RiskBadge level={status} />}
+        {status && (
+          <div className="shrink-0 pl-1 self-start">
+            <RiskBadge level={status} />
+          </div>
+        )}
       </div>
-      <div className="text-foreground mt-2 sm:mt-3 font-mono text-xl sm:text-2xl font-semibold tracking-tight tabular-nums truncate">{value}</div>
-      {trend !== undefined && (
-        <div className={cn("mt-2 flex items-center gap-1.5 text-xs", bad ? "text-risk-high" : "text-risk-low")}>
-          {up ? <TrendingUp className="size-3.5" aria-hidden /> : <TrendingDown className="size-3.5" aria-hidden />}
-          <span className="font-medium">
-            {up ? "+" : ""}
-            {trend}
-            {Math.abs(trend) < 100 && String(trend).includes(".") ? "%" : ""}
-          </span>
-          <span className="text-muted-foreground">{trendLabel}</span>
+
+      <div className="mt-1">
+        <div className="text-foreground font-mono text-xl sm:text-2xl font-bold tracking-tight tabular-nums break-words leading-tight">
+          {value}
         </div>
-      )}
+        {trend !== undefined && trendLabel && (
+          <div className={cn("mt-2 flex items-center gap-1.5 text-xs font-medium", bad ? "text-risk-high" : "text-risk-low")}>
+            {up ? <TrendingUp className="size-3.5 shrink-0" aria-hidden /> : <TrendingDown className="size-3.5 shrink-0" aria-hidden />}
+            <span>
+              {up ? "+" : ""}
+              {trend}
+              {Math.abs(trend) < 100 && String(trend).includes(".") ? "%" : ""}
+            </span>
+            <span className="text-muted-foreground font-normal">{trendLabel}</span>
+          </div>
+        )}
+      </div>
     </Card>
   );
 }

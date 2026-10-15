@@ -196,7 +196,7 @@ export function SmeAdminDashboard({
       </div>
 
       {/* KPI Cards */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {data.kpis.map((k) => (
           <MetricCard key={k.key} label={k.label} value={k.value} trend={k.trend} trendLabel={k.trendLabel} status={k.status} tooltip={k.tooltip} />
         ))}

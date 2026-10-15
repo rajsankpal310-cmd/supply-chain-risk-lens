@@ -9,9 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/context/AuthContext";
 import { TeamManagementTab } from "@/components/settings/TeamManagementTab";
-import { EnterpriseConnectorsTab } from "@/components/upload/EnterpriseConnectorsTab";
 import { DataGovernanceAuditTab } from "@/components/upload/DataGovernanceAuditTab";
-import { Database, ShieldCheck, Sliders, Users, Plug } from "lucide-react";
+import { ShieldCheck, Sliders, Users } from "lucide-react";
 
 export function SettingsPage() {
   const { user, updateProfile } = useAuth();
@@ -26,9 +25,6 @@ export function SettingsPage() {
   const [highRiskThreshold, setHighRiskThreshold] = useState(65);
   const [currencyFormat, setCurrencyFormat] = useState("INR");
   const [mockLatency, setMockLatency] = useState(true);
-
-  // Sub-tab for governance & connectors
-  const [govSubTab, setGovSubTab] = useState<"governance" | "connectors">("governance");
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -81,7 +77,7 @@ export function SettingsPage() {
           className="text-xs font-semibold gap-1.5"
           onClick={() => setActiveTab("governance")}
         >
-          <ShieldCheck className="size-3.5" /> Advanced: Governance & Connectors
+          <ShieldCheck className="size-3.5" /> Data Foundation & ML Governance
         </Button>
       </div>
 
@@ -182,30 +178,10 @@ export function SettingsPage() {
       {/* Tab 2: Team Management */}
       {activeTab === "team" && <TeamManagementTab />}
 
-      {/* Tab 3: Governance & Connectors (Secondary / Advanced Area per Constraint 7) */}
+      {/* Tab 3: Data Foundation & ML Governance */}
       {activeTab === "governance" && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b pb-2">
-            <Button
-              variant={govSubTab === "governance" ? "default" : "outline"}
-              size="sm"
-              className="text-xs font-medium gap-1.5"
-              onClick={() => setGovSubTab("governance")}
-            >
-              <Database className="size-3.5" /> Data Foundation & ML Readiness Audit
-            </Button>
-            <Button
-              variant={govSubTab === "connectors" ? "default" : "outline"}
-              size="sm"
-              className="text-xs font-medium gap-1.5"
-              onClick={() => setGovSubTab("connectors")}
-            >
-              <Plug className="size-3.5" /> Enterprise ERP & Bank Connectors
-            </Button>
-          </div>
-
-          {govSubTab === "governance" && <DataGovernanceAuditTab />}
-          {govSubTab === "connectors" && <EnterpriseConnectorsTab />}
+          <DataGovernanceAuditTab />
         </div>
       )}
     </div>

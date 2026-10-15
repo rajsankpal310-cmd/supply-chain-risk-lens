@@ -449,18 +449,18 @@ export function AppLayout() {
 
           {/* Data Environment / Demo Mode Indicator */}
           {user?.organizationId === "ORG-001" || user?.email?.includes("demo") ? (
-            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/35 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300 shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-purple-500/35 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300 shrink-0">
               <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
               <span className="font-semibold text-[11px]">Demo Mode</span>
             </div>
           ) : user?.organizationName && user.organizationName !== "Operational Workspace" ? (
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/25 bg-primary/5 text-xs text-muted-foreground shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/25 bg-primary/5 text-xs text-muted-foreground shrink-0">
               <span className="size-1.5 rounded-full bg-emerald-500" />
               <span className="font-medium text-foreground text-[11px]">Org:</span>
               <span className="text-[11px] truncate max-w-32">{user.organizationName}</span>
             </div>
           ) : (
-            <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300 shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300 shrink-0">
               <span className="size-1.5 rounded-full bg-amber-500" />
               <span className="font-medium text-[11px]">Waiting for Data</span>
             </div>

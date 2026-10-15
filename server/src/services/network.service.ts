@@ -1,3 +1,4 @@
+import { prisma } from "../config/database";
 import { AlertRepository } from "../repositories/alert.repository";
 import { FirmRepository } from "../repositories/firm.repository";
 import { RelationshipRepository } from "../repositories/relationship.repository";
@@ -7,10 +8,26 @@ import { sanitizeCompanyName } from "../utils/sanitize";
 
 export class NetworkService {
   static async getNetwork(organizationId: string) {
-    const firms = await FirmRepository.findAll(organizationId);
-    const relationships = await RelationshipRepository.findAll(organizationId);
-    const transactions = await TransactionRepository.findMany(organizationId, {}, { invoiceDate: "desc" }, 0, 10000);
-    const alerts = await AlertRepository.findAll(organizationId, { read: false });
+    const [firms, relationships, transactions, alerts] = await Promise.all([
+      FirmRepository.findAll(organizationId),
+      RelationshipRepository.findAll(organizationId),
+      prisma.transaction.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          smeId: true,
+          buyerId: true,
+          supplierId: true,
+          invoiceAmount: true,
+          outstandingAmount: true,
+          paymentDelayDays: true,
+          paymentStatus: true,
+        },
+        orderBy: { invoiceDate: "desc" },
+        take: 10000,
+      }),
+      AlertRepository.findAll(organizationId, { read: false }),
+    ]);
 
     // Retrieve ML predictions for tenant if available
     const mlPredictions = BPIEnterprisePipeline.getPredictions(organizationId);
@@ -18,6 +35,46 @@ export class NetworkService {
     for (const p of mlPredictions) {
       predMap.set(p.vendorId, p);
       predMap.set(p.caseId, p);
+    }
+
+    // Pre-bucket transactions by counterparty pairs and by firm
+    const pairTxnsMap = new Map<string, any[]>();
+    const firmTxnsMap = new Map<string, any[]>();
+
+    for (const t of transactions) {
+      for (const fId of [t.smeId, t.buyerId, t.supplierId]) {
+        if (!fId) continue;
+        let list = firmTxnsMap.get(fId);
+        if (!list) {
+          list = [];
+          firmTxnsMap.set(fId, list);
+        }
+        list.push(t);
+      }
+
+      const src = t.smeId || t.supplierId;
+      const tgt = t.buyerId;
+      if (src && tgt && src !== tgt) {
+        const pairKey = `${src}->${tgt}`;
+        let list = pairTxnsMap.get(pairKey);
+        if (!list) {
+          list = [];
+          pairTxnsMap.set(pairKey, list);
+        }
+        list.push(t);
+      }
+    }
+
+    // Pre-bucket alerts by firm
+    const alertsByFirm = new Map<string, any[]>();
+    for (const a of alerts) {
+      if (!a.firmId) continue;
+      let list = alertsByFirm.get(a.firmId);
+      if (!list) {
+        list = [];
+        alertsByFirm.set(a.firmId, list);
+      }
+      list.push(a);
     }
 
     // Synthesize firm entries for any counterparties in transactions not in Firm table
@@ -51,12 +108,10 @@ export class NetworkService {
     // Build comprehensive edges (from stored relationships + derived from transactions)
     const edgeMap = new Map<string, any>();
     for (const r of relationships) {
-      const relTxns = transactions.filter(
-        (t: any) =>
-          (t.smeId === r.sourceFirmId && t.buyerId === r.targetFirmId) ||
-          (t.smeId === r.targetFirmId && t.buyerId === r.sourceFirmId) ||
-          (t.supplierId === r.sourceFirmId && t.buyerId === r.targetFirmId)
-      );
+      const directTxns = pairTxnsMap.get(`${r.sourceFirmId}->${r.targetFirmId}`) || [];
+      const reverseTxns = pairTxnsMap.get(`${r.targetFirmId}->${r.sourceFirmId}`) || [];
+      const relTxns = [...directTxns, ...reverseTxns];
+
       const activeRelTxns = relTxns.filter((t: any) => t.paymentStatus !== "PAID");
       const completedRelTxns = relTxns.filter((t: any) => t.paymentStatus === "PAID");
       const activeExposure = activeRelTxns.reduce((s: number, t: any) => s + (t.outstandingAmount || t.invoiceAmount || 0), 0);
@@ -78,18 +133,10 @@ export class NetworkService {
     }
 
     // Supplement edges for counterparty pairs with active/historical transactions
-    for (const t of transactions) {
-      const src = t.smeId || t.supplierId;
-      const tgt = t.buyerId;
-      if (!src || !tgt || src === tgt) continue;
-      const directKey = `${src}->${tgt}`;
+    for (const [pairKey, pairTxns] of pairTxnsMap.entries()) {
+      const [src, tgt] = pairKey.split("->");
       const revKey = `${tgt}->${src}`;
-      if (!edgeMap.has(directKey) && !edgeMap.has(revKey)) {
-        const pairTxns = transactions.filter(
-          (tx: any) =>
-            (tx.smeId === src && tx.buyerId === tgt) ||
-            (tx.supplierId === src && tx.buyerId === tgt)
-        );
+      if (!edgeMap.has(pairKey) && !edgeMap.has(revKey)) {
         const activePairTxns = pairTxns.filter((tx: any) => tx.paymentStatus !== "PAID");
         const completedPairTxns = pairTxns.filter((tx: any) => tx.paymentStatus === "PAID");
         const totalVal = pairTxns.reduce((s: number, tx: any) => s + (tx.invoiceAmount || 0), 0);
@@ -98,7 +145,7 @@ export class NetworkService {
         const dep = Math.min(95, Math.max(15, Math.round((pairTxns.length / Math.max(1, transactions.length)) * 100)));
         const crit = dep >= 80 ? "CRITICAL" : dep >= 62 ? "HIGH" : dep >= 40 ? "MEDIUM" : "LOW";
 
-        edgeMap.set(directKey, {
+        edgeMap.set(pairKey, {
           id: `EDGE-DERIVED-${src}-${tgt}`,
           source: src,
           target: tgt,
@@ -115,6 +162,19 @@ export class NetworkService {
     }
     const edges = Array.from(edgeMap.values());
 
+    // Pre-bucket edges by firm to avoid O(Firms * Edges) scans
+    const edgesByFirm = new Map<string, any[]>();
+    for (const e of edges) {
+      for (const fId of [e.source, e.target]) {
+        let list = edgesByFirm.get(fId);
+        if (!list) {
+          list = [];
+          edgesByFirm.set(fId, list);
+        }
+        list.push(e);
+      }
+    }
+
     const nodes = allFirms.map((f: any, i: number) => {
       const ring = i % 3;
       const perRing = [7, 7, 6][ring]!;
@@ -122,13 +182,13 @@ export class NetworkService {
       const angle = (idxInRing / perRing) * Math.PI * 2 + ring * 0.4;
       const radius = 130 + ring * 105;
 
-      const relsForFirm = edges.filter((e: any) => e.source === f.id || e.target === f.id);
+      const relsForFirm = edgesByFirm.get(f.id) || [];
       const exposure = relsForFirm.reduce((s: number, e: any) => s + (e.activeExposure || e.exposure || 0), 0);
 
-      const firmTxns = transactions.filter((t: any) => t.smeId === f.id || t.buyerId === f.id || t.supplierId === f.id);
+      const firmTxns = firmTxnsMap.get(f.id) || [];
       const activeTxns = firmTxns.filter((t: any) => t.paymentStatus !== "PAID");
       const completedTxns = firmTxns.filter((t: any) => t.paymentStatus === "PAID");
-      const activeAlerts = alerts.filter((a: any) => a.firmId === f.id);
+      const activeAlerts = alertsByFirm.get(f.id) || [];
 
       // Degree and Centrality Metrics
       const degree = relsForFirm.length;

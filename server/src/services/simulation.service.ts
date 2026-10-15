@@ -121,16 +121,13 @@ export class SimulationService {
     };
 
     let scenario = null;
-    if (input.scenarioId) {
+    if (input.scenarioId && !input.scenarioId.startsWith("SCN-RUN-") && input.scenarioId !== "run" && input.scenarioId !== "new") {
       scenario = await ScenarioRepository.findById(input.scenarioId, organizationId);
-      if (!scenario) {
-        throw { status: 404, message: "This resource is not available in your organization." };
-      }
     }
 
     if (!scenario) {
       const scCount = await ScenarioRepository.count(organizationId);
-      const scenarioId = `SCN-${organizationId}-${String(scCount + 1).padStart(3, "0")}`;
+      const scenarioId = `SCN-${organizationId}-${Date.now().toString(36)}-${String(scCount + 1).padStart(3, "0")}`;
       scenario = await ScenarioRepository.create({
         id: scenarioId,
         organizationId,
@@ -138,15 +135,15 @@ export class SimulationService {
         type: input.type || "BUYER_PAYMENT_DELAY",
         affectedFirmId: rootFirm.id,
         severity: input.severity || "HIGH",
-        delayDays: input.delayDays || 60,
-        amount: input.amount || 5000000,
-        durationDays: input.durationDays || 90,
-        recoveryRate: input.recoveryRate || 45,
+        delayDays: input.delayDays ? Number(input.delayDays) : 60,
+        amount: input.amount ? Number(input.amount) : 5000000,
+        durationDays: input.durationDays ? Number(input.durationDays) : 90,
+        recoveryRate: input.recoveryRate ? Number(input.recoveryRate) : 45,
       });
     }
 
     const runCount = await SimulationRepository.count(organizationId);
-    const runId = `SIM-${organizationId}-${String(runCount + 1).padStart(3, "0")}`;
+    const runId = `SIM-${organizationId}-${Date.now().toString(36)}-${String(runCount + 1).padStart(3, "0")}`;
 
     const run = await SimulationRepository.create({
       id: runId,

@@ -73,8 +73,12 @@ export function SimulatorPage({ initialTab = "run" }: { initialTab?: "run" | "hi
       });
       setSimulationResult(run);
       toast.success("Simulation completed successfully");
-    } catch (err) {
-      toast.error("Simulation run failed");
+    } catch (err: any) {
+      const errorMsg =
+        err?.message ||
+        err?.error?.message ||
+        (typeof err === "string" ? err : "Simulation run failed");
+      toast.error(errorMsg);
     } finally {
       setIsSimulating(false);
     }

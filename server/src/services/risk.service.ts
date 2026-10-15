@@ -1,3 +1,4 @@
+import { prisma } from "../config/database";
 import { FirmRepository } from "../repositories/firm.repository";
 import { RelationshipRepository } from "../repositories/relationship.repository";
 import { TransactionRepository } from "../repositories/transaction.repository";
@@ -5,9 +6,21 @@ import { recalculateFirmRisk } from "../utils/riskCalculator";
 
 export class RiskService {
   static async getOverview(organizationId: string) {
-    const firms = await FirmRepository.findAll(organizationId);
-    const transactions = await TransactionRepository.findMany(organizationId, {}, { invoiceDate: "desc" }, 0, 10000);
-    const relationships = await RelationshipRepository.findAll(organizationId);
+    const [firms, transactions, relationships] = await Promise.all([
+      FirmRepository.findAll(organizationId),
+      prisma.transaction.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          invoiceDate: true,
+          paymentDelayDays: true,
+          outstandingAmount: true,
+        },
+        orderBy: { invoiceDate: "desc" },
+        take: 10000,
+      }),
+      RelationshipRepository.findAll(organizationId),
+    ]);
 
     // Empty organization check: 0 firms and 0 transactions
     if (firms.length === 0 && transactions.length === 0) {

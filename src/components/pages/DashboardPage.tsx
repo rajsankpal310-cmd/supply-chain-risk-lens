@@ -9,7 +9,7 @@ import { alertService } from "@/services/decisionServices";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const summary = useQuery({ queryKey: ["dashboard"], queryFn: dashboardService.getSummary });
+  const summary = useQuery({ queryKey: ["dashboard-summary"], queryFn: dashboardService.getSummary });
   const alerts = useQuery({ queryKey: ["alerts"], queryFn: alertService.getAlerts });
 
   if (summary.isLoading) return <CardsSkeleton count={6} />;

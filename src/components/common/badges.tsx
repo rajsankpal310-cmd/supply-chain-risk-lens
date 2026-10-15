@@ -17,15 +17,15 @@ export function RiskBadge({ level, score, className }: { level: RiskLevel; score
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold tracking-wide uppercase",
+            "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold tracking-wide uppercase shrink-0 whitespace-nowrap",
             meta.className,
             className,
           )}
           aria-label={`Risk level ${meta.label}${score !== undefined ? `, score ${score}` : ""}`}
         >
           <meta.Icon className="size-3.5 shrink-0" aria-hidden />
-          {meta.label}
-          {score !== undefined && <span className="font-mono text-[11px] opacity-80">{score}</span>}
+          <span>{meta.label}</span>
+          {score !== undefined && <span className="font-mono text-[11px] opacity-85 ml-0.5">{score}</span>}
         </span>
       </TooltipTrigger>
       <TooltipContent>{meta.help}</TooltipContent>

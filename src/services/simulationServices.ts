@@ -99,10 +99,33 @@ export const simulationService = {
   getSimulations: () => resolve<SimulationRun[]>(ENDPOINTS.simulations, () => simulationStore),
   getSimulationById: (id: string) => resolve<SimulationRun | undefined>(ENDPOINTS.simulation(id), () => simulationStore.find((s) => s.id === id)),
 
-  /** Mock progress mirrors the future BullMQ worker stages exposed over SSE. */
   async runSimulation(input: ScenarioInput, onStage?: (stageIndex: number) => void): Promise<SimulationRun> {
-    const scenario: Scenario = { ...input, id: `SCN-RUN-${simulationStore.length + 1}`, createdAt: new Date().toISOString().slice(0, 10) };
-    if (!USE_MOCK_API) return apiClient.post<SimulationRun>(ENDPOINTS.runScenario(scenario.id), input);
+    const scenario: Scenario = { ...input, id: `SCN-RUN-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) };
+    if (!USE_MOCK_API) {
+      let stage = 0;
+      onStage?.(0);
+      const interval = setInterval(() => {
+        stage = Math.min(SIMULATION_STAGES.length - 2, stage + 1);
+        onStage?.(stage);
+      }, 300);
+
+      try {
+        const run = await apiClient.post<SimulationRun>("/simulations/run", input);
+        clearInterval(interval);
+        onStage?.(SIMULATION_STAGES.length - 1);
+        if (typeof run.result === "string") {
+          try {
+            run.result = JSON.parse(run.result);
+          } catch {
+            // Keep as is
+          }
+        }
+        return run;
+      } catch (err) {
+        clearInterval(interval);
+        throw err;
+      }
+    }
 
     for (let i = 0; i < SIMULATION_STAGES.length; i++) {
       onStage?.(i);

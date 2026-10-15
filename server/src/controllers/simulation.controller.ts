@@ -22,4 +22,14 @@ export class SimulationController {
       next(error);
     }
   }
+
+  static async runSimulation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const organizationId = (req as any).user.organizationId;
+      const run = await SimulationService.runSimulation(organizationId, req.body);
+      return sendSuccess(res, run, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -12,10 +12,9 @@ export class DashboardService {
   }
 
   static async getSummary(organizationId: string, userRole?: string) {
-    const firms = await FirmRepository.findAll(organizationId);
-    const relationships = await RelationshipRepository.findAll(organizationId);
-
-    const [totalTxnCount, txnAggregates, delayedAggregates, transactions] = await Promise.all([
+    const [firms, relationships, totalTxnCount, txnAggregates, delayedAggregates, transactions] = await Promise.all([
+      FirmRepository.findAll(organizationId),
+      RelationshipRepository.findAll(organizationId),
       prisma.transaction.count({ where: { organizationId } }),
       prisma.transaction.aggregate({
         where: { organizationId },
@@ -27,7 +26,16 @@ export class DashboardService {
         _avg: { paymentDelayDays: true },
         _count: { id: true },
       }),
-      TransactionRepository.findMany(organizationId, {}, { invoiceDate: "desc" }, 0, 1000),
+      prisma.transaction.findMany({
+        where: { organizationId },
+        select: {
+          invoiceDate: true,
+          paymentDelayDays: true,
+          outstandingAmount: true,
+        },
+        orderBy: { invoiceDate: "desc" },
+        take: 1000,
+      }),
     ]);
 
     const totalOutstandingAmount = txnAggregates._sum.outstandingAmount || 0;
