@@ -18,6 +18,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDeadlocksRouteImport } from './routes/app.deadlocks'
+import { Route as AppDecisionNetworkRouteImport } from './routes/app.decision-network'
 import { Route as AppNetworkRouteImport } from './routes/app.network'
 import { Route as AppOptimizationRouteImport } from './routes/app.optimization'
 import { Route as AppPredictionsRouteImport } from './routes/app.predictions'
@@ -79,6 +80,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 const AppDeadlocksRoute = AppDeadlocksRouteImport.update({
   id: '/deadlocks',
   path: '/deadlocks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDecisionNetworkRoute = AppDecisionNetworkRouteImport.update({
+  id: '/decision-network',
+  path: '/decision-network',
   getParentRoute: () => AppRoute,
 } as any)
 const AppNetworkRoute = AppNetworkRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/app/alerts': typeof AppAlertsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/decision-network': typeof AppDecisionNetworkRoute
   '/app/network': typeof AppNetworkRoute
   '/app/optimization': typeof AppOptimizationRoute
   '/app/predictions': typeof AppPredictionsRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/app/alerts': typeof AppAlertsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/decision-network': typeof AppDecisionNetworkRoute
   '/app/network': typeof AppNetworkRoute
   '/app/optimization': typeof AppOptimizationRoute
   '/app/predictions': typeof AppPredictionsRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/app/alerts': typeof AppAlertsRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/deadlocks': typeof AppDeadlocksRoute
+  '/app/decision-network': typeof AppDecisionNetworkRoute
   '/app/network': typeof AppNetworkRoute
   '/app/optimization': typeof AppOptimizationRoute
   '/app/predictions': typeof AppPredictionsRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/app/alerts'
     | '/app/dashboard'
     | '/app/deadlocks'
+    | '/app/decision-network'
     | '/app/network'
     | '/app/optimization'
     | '/app/predictions'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/app/alerts'
     | '/app/dashboard'
     | '/app/deadlocks'
+    | '/app/decision-network'
     | '/app/network'
     | '/app/optimization'
     | '/app/predictions'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/app/alerts'
     | '/app/dashboard'
     | '/app/deadlocks'
+    | '/app/decision-network'
     | '/app/network'
     | '/app/optimization'
     | '/app/predictions'
@@ -408,6 +420,13 @@ declare module '@tanstack/react-router' {
       path: '/deadlocks'
       fullPath: '/app/deadlocks'
       preLoaderRoute: typeof AppDeadlocksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/decision-network': {
+      id: '/app/decision-network'
+      path: '/decision-network'
+      fullPath: '/app/decision-network'
+      preLoaderRoute: typeof AppDecisionNetworkRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/network': {
@@ -536,6 +555,7 @@ interface AppRouteChildren {
   AppAlertsRoute: typeof AppAlertsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppDeadlocksRoute: typeof AppDeadlocksRoute
+  AppDecisionNetworkRoute: typeof AppDecisionNetworkRoute
   AppNetworkRoute: typeof AppNetworkRoute
   AppOptimizationRoute: typeof AppOptimizationRoute
   AppPredictionsRoute: typeof AppPredictionsRoute
@@ -560,6 +580,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAlertsRoute: AppAlertsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppDeadlocksRoute: AppDeadlocksRoute,
+  AppDecisionNetworkRoute: AppDecisionNetworkRoute,
   AppNetworkRoute: AppNetworkRoute,
   AppOptimizationRoute: AppOptimizationRoute,
   AppPredictionsRoute: AppPredictionsRoute,

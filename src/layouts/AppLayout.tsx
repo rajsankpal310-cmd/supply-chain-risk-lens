@@ -88,6 +88,7 @@ const SME_ADMIN_NAV = [
   {
     label: "Decisions & Actions",
     items: [
+      { to: "/app/decision-network", label: "Decision Network", icon: GitBranch },
       { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
       { to: "/app/simulator", label: "Scenario Simulator", icon: Activity },
     ],
@@ -130,6 +131,7 @@ const ANALYST_NAV = [
   {
     label: "Decision Support",
     items: [
+      { to: "/app/decision-network", label: "Decision Network", icon: GitBranch },
       { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
       { to: "/app/simulator", label: "Scenario Simulator", icon: Activity },
     ],
@@ -158,6 +160,7 @@ const VIEWER_NAV = [
   {
     label: "Actions & Monitoring",
     items: [
+      { to: "/app/decision-network", label: "Decision Network", icon: GitBranch },
       { to: "/app/recommendations", label: "Recommendations", icon: Lightbulb },
       { to: "/app/alerts", label: "Alerts", icon: Bell },
       { to: "/app/reports", label: "Reports", icon: FileText },
@@ -181,6 +184,7 @@ function canRoleAccess(role: UserRole | undefined, path: string): boolean {
       "/app/dashboard",
       "/app/risk",
       "/app/network",
+      "/app/decision-network",
       "/app/recommendations",
       "/app/alerts",
       "/app/reports",
@@ -198,6 +202,7 @@ const TITLES: Record<string, string> = {
   "/app/firms": "Firms",
   "/app/relationships": "Relationships",
   "/app/risk": "Portfolio Risk",
+  "/app/decision-network": "Decision Network",
   "/app/predictions": "Predictions",
   "/app/network": "Supply Chain Network",
   "/app/simulator": "Scenario Simulator",

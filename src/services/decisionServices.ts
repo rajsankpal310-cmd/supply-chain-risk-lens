@@ -180,3 +180,25 @@ export const reportService = {
     };
   },
 };
+
+export const decisionNetworkService = {
+  getOverview: async () => {
+    return apiClient.get<import("@/types").DecisionNetworkOverview>(ENDPOINTS.decisionNetwork);
+  },
+  getNodeContext: async (firmId: string) => {
+    return apiClient.get<import("@/types").DecisionNodeContext>(ENDPOINTS.decisionNode(firmId));
+  },
+  createRun: async () => {
+    return apiClient.post(ENDPOINTS.decisionRuns, {});
+  },
+  getRunById: async (runId: string) => {
+    return apiClient.get(ENDPOINTS.decisionRun(runId));
+  },
+  simulateAction: async (runId: string, actionId: string) => {
+    return apiClient.post<import("@/types").DecisionSimulationResult>(ENDPOINTS.decisionSimulate(runId), { actionId });
+  },
+  reviewOption: async (optionId: string, decision: "APPROVED" | "REJECTED" | "DEFERRED", reason?: string) => {
+    return apiClient.post<{ review: any; action: import("@/types").CandidateAction }>(ENDPOINTS.decisionReview(optionId), { decision, reason });
+  },
+};
+

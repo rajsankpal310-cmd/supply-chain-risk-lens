@@ -48,4 +48,11 @@ export const ENDPOINTS = {
   connector: (id: string) => `/connectors/${id}`,
   connectorTest: (id: string) => `/connectors/${id}/test`,
   connectorContract: "/connectors/contract",
+  decisionNetwork: "/decision-network",
+  decisionNode: (firmId: string) => `/decision-network/nodes/${firmId}`,
+  decisionRuns: "/decision-network/runs",
+  decisionRun: (runId: string) => `/decision-network/runs/${runId}`,
+  decisionSimulate: (runId: string) => `/decision-network/runs/${runId}/simulate`,
+  decisionReview: (optionId: string) => `/decision-network/options/${optionId}/review`,
 } as const;
+

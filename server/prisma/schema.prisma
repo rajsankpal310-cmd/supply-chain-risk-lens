@@ -28,6 +28,9 @@ model Organization {
   reports          Report[]
   importBatches    ImportBatch[]
   optimizationRuns OptimizationRun[]
+  decisionRuns     DecisionRun[]
+  candidateActions CandidateAction[]
+  decisionReviews  DecisionReview[]
 }
 
 model User {
@@ -372,3 +375,78 @@ model Report {
   @@unique([organizationId, key])
   @@index([organizationId])
 }
+
+model DecisionRun {
+  id               String            @id @default(uuid())
+  organizationId   String
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  status           String            @default("COMPLETED")
+  algorithmVersion String            @default("v1.0-deterministic")
+  inputSnapshot    String?
+  metricsSummary   String?
+  evaluatedAt      DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  candidateActions CandidateAction[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model CandidateAction {
+  id                String          @id @default(uuid())
+  organizationId    String
+  organization      Organization    @relation(fields: [organizationId], references: [id])
+  decisionRunId     String
+  decisionRun       DecisionRun     @relation(fields: [decisionRunId], references: [id], onDelete: Cascade)
+  firmId            String
+  firmName          String
+  actionType        String
+  title             String
+  explanation       String
+  whyRequired       String
+  priority          String          @default("MEDIUM")
+  score             Float           @default(0)
+  benefitScore      Float           @default(0)
+  urgencyScore      Float           @default(0)
+  feasibilityScore  Float           @default(0)
+  confidenceScore   Float           @default(0)
+  estimatedCost     Float?
+  expectedBenefit   String
+  tradeoffs         String?
+  constraints       String?
+  assumptions       String?
+  evidence          String?
+  isSimulatable     Boolean         @default(false)
+  simulationPayload String?
+  status            String          @default("PENDING_REVIEW")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  reviews           DecisionReview[]
+
+  @@index([organizationId])
+  @@index([decisionRunId])
+  @@index([firmId])
+  @@index([actionType])
+  @@index([status])
+}
+
+model DecisionReview {
+  id                String          @id @default(uuid())
+  organizationId    String
+  organization      Organization    @relation(fields: [organizationId], references: [id])
+  candidateActionId String
+  candidateAction   CandidateAction @relation(fields: [candidateActionId], references: [id], onDelete: Cascade)
+  reviewerId        String
+  reviewerName      String
+  decision          String
+  reason            String?
+  reviewedAt        DateTime        @default(now())
+
+  @@index([organizationId])
+  @@index([candidateActionId])
+  @@index([reviewerId])
+}
+

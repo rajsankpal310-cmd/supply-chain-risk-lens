@@ -20,6 +20,7 @@ import governanceRoutes from "./governance.routes";
 import connectorRoutes from "./connector.routes";
 import mlRoutes from "./ml.routes";
 import healthRoutes from "./health.routes";
+import decisionNetworkRoutes from "./decisionNetwork.routes";
 
 const apiRouter = Router();
 
@@ -32,8 +33,10 @@ apiRouter.use("/relationships", relationshipRoutes);
 apiRouter.use("/risk", riskRoutes);
 apiRouter.use("/predictions", predictionRoutes);
 apiRouter.use("/network", networkRoutes);
+apiRouter.use("/decision-network", decisionNetworkRoutes);
 apiRouter.use("/scenarios", scenarioRoutes);
 apiRouter.use("/simulations", simulationRoutes);
+
 apiRouter.use("/deadlocks", deadlockRoutes);
 apiRouter.use("/recommendations", recommendationRoutes);
 apiRouter.use("/optimization", optimizationRoutes);
