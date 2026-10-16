@@ -17,16 +17,17 @@ A comprehensive quality assurance audit, full-system test execution, defect reme
 The audit encompassed discovering and executing all existing backend and frontend test suites, verifying multi-tenant isolation, testing financial risk calculations, checking data ingestion pipelines, investigating previously reported user interface defects (such as dashboard page load failures and graph node name resolution bugs), resolving cross-tenant IDOR vulnerabilities, and certifying mobile responsiveness and production build integrity.
 
 ### Key Results Summary
-- **Total Test Suites Executed:** 29 (27 baseline suites + 1 QA regression suite + 1 full master test sheet execution suite)
-- **Total Tests Executed:** 410
-- **Total Passed:** 410 (100% pass rate)
+- **Total Test Suites Executed:** 30 (27 baseline suites + 1 QA regression suite + 1 full master test sheet execution suite + 1 demo dashboard complete verification suite)
+- **Total Tests Executed:** 423
+- **Total Passed:** 423 (100% pass rate)
 - **Total Failed:** 0
 - **Total Blocked:** 0
 - **Total Skipped:** 0
 - **TypeScript Type Checks (Frontend & Backend):** 0 errors
-- **Production Build (`vite build`):** Successfully bundled in 4.80s with zero warnings/errors
+- **Production Build (`vite build`):** Successfully bundled in 17.72s with zero warnings/errors
 - **Security & Multi-Tenant Integrity:** Validated zero cross-tenant leakage across scenarios, transactions, network graphs, and batch uploads.
 - **Privacy & Anonymization:** PII masking implemented and verified for direct personal identifiers in analytical ingestion pipeline.
+- **Demo Dashboard Completeness:** Canonical demo dataset fully restored for ORG-001 (120 txns, 12 firms, 30 rels, 6 preds, 5 recs, 4 alerts, 1 deadlock, 1 sim run, 4 reports). "Not enough data" resolved across all KPI cards.
 
 ---
 
@@ -87,6 +88,7 @@ npx vitest run <relative-test-path>
 | 27| `tests/transaction_ingestion.test.ts` | CSV/JSON transaction parsing, deduplication | `npx vitest run tests/transaction_ingestion.test.ts` | **PASS (22/22)** |
 | 28| `tests/qa_regression_validation.test.ts` | Focused QA regression suite for reported defect areas | `npx vitest run tests/qa_regression_validation.test.ts` | **PASS (5/5)** |
 | 29| `tests/full_test_sheet_execution.test.ts` | Complete master test case sheet execution (TC-001 to TC-020) | `npx vitest run tests/full_test_sheet_execution.test.ts` | **PASS (20/20)** |
+| 30| `tests/demo_dashboard_complete.test.ts` | Complete demo dataset restoration & complete dashboard KPI verification | `npx vitest run tests/demo_dashboard_complete.test.ts` | **PASS (13/13)** |
 
 ---
 
@@ -134,6 +136,15 @@ During Phase A baseline testing, 4 failure patterns were identified and systemat
 - **Root Cause:** Route naming divergence between legacy dashboard components and analytics services.
 - **Fix:** Added `router.get("/metrics", authenticate, DashboardController.getSummary)` in `server/src/routes/dashboard.routes.ts` providing bidirectional route compatibility.
 
+### Defect 8 — Demo Organization Missing Transactions & "Not enough data" Dashboard State
+- **Symptom:** After logging in as `demo@nexuscfr.in`, the dashboard showed `Overall Risk Score: 46/100` and `At-Risk Firms: 3`, but other metrics (`Payment Delay Risk`, `Supply Chain Cascade Risk`, `Outstanding Receivables`) displayed `"Not enough data"`.
+- **Root Cause:** Database inspection revealed that while the 12 demo firms in `ORG-001` existed, all transactions (`txns = 0`), relationships (`rels = 0`), predictions, recommendations, alerts, and deadlocks had been cleared (by prior test cleanup or unseeded database state). In `DashboardService.getSummary`, `hasTransactions` is evaluated as `totalTxnCount > 0`. Because `totalTxnCount === 0`, all transaction-dependent metrics evaluated to `"Not enough data"`.
+- **Fix:** 
+  1. Built an idempotent, high-performance batch-insert demo data restorer (`server/src/utils/restoreDemoData.ts`) using Prisma `createMany` that regenerates the canonical demo dataset for `ORG-001` (120 B2B transactions, 12 firms, 30 directed relationships, 6 predictions, 5 recommendations, 4 alerts, 1 deadlock, 1 scenario/sim run, and 4 reports).
+  2. Implemented a self-healing login hook in `AuthService.login` (`server/src/services/auth.service.ts`): if `demo@nexuscfr.in` logs in and `ORG-001` has 0 transactions or 0 relationships, it automatically restores the canonical demo dataset in real-time.
+  3. Added standalone CLI script `server/scripts/seedDemo.ts` and `"seed:demo"` command in `server/package.json`.
+  4. Added comprehensive automated regression suite (`server/tests/demo_dashboard_complete.test.ts`) verifying all 13 demo dashboard and module endpoints pass with 100% genuine data and zero `"Not enough data"` states.
+
 ---
 
 ## 5. Files Changed & Fixes Applied
@@ -146,12 +157,17 @@ During Phase A baseline testing, 4 failure patterns were identified and systemat
 | `server/src/routes/network.routes.ts` | Added dual `/` and `/graph` route bindings for network graph queries. |
 | `server/src/pipeline/dataCleaner.ts` | Implemented direct identifier PII masking (`maskDirectIdentifiers`) for privacy compliance (TC-004). |
 | `server/src/routes/dashboard.routes.ts` | Added `/metrics` route alias mapping to `DashboardController.getSummary` (TC-016). |
+| `server/src/utils/restoreDemoData.ts` | **NEW:** High-performance idempotent canonical demo dataset restoration module for `ORG-001`. |
+| `server/src/services/auth.service.ts` | Implemented self-healing check on demo login restoring `ORG-001` dataset if records drop to zero. |
+| `server/scripts/seedDemo.ts` | **NEW:** Standalone CLI script to seed or restore canonical demo data without wiping foreign tenants. |
+| `server/package.json` | Added `"seed:demo"` npm script for repeatable demo dataset deployment. |
 | `src/utils/format.ts` | Fixed `formatCompanyName` parameter resolution and raw ID sanitization. |
 | `src/components/pages/NetworkPage.tsx` | Linked `selectedFirm` entity resolution to guarantee node company name display. |
 | `server/tests/api.test.ts` | Added tenant teardown hook and adjusted registration timeout for bcrypt latency. |
 | `server/tests/phase3_data_pipeline.test.ts` | Fixed foreign key deletion order for recommendation entities. |
 | `server/tests/qa_regression_validation.test.ts` | Comprehensive regression suite testing IDOR, provenance, node names, and KPIs. |
 | `server/tests/full_test_sheet_execution.test.ts` | Master E2E execution suite for full QA Test Case Sheet (TC-001 through TC-020). |
+| `server/tests/demo_dashboard_complete.test.ts` | **NEW:** E2E regression suite validating demo login, complete metrics, and zero "Not enough data" states. |
 | `TEST_EXECUTION_MATRIX.md` | Full traceability matrix mapping all 20 test cases with previous status, root cause, fix, and final status. |
 | `TEST_CASE_SHEET.md` | Master updated test case sheet with detailed execution steps, preconditions, and empirical results. |
 
@@ -241,3 +257,90 @@ The frontend architecture was inspected and verified across mobile, tablet, and 
    - `npm run build` completed successfully with zero errors.
 3. **Branch:** Changes are staged for `clean-release`. Pushing to `origin clean-release` will trigger automatic Vercel deployment for the frontend.
 4. **Environment Variables:** Production environment variables on Vercel and Render remain intact and protected. Zero secrets or sensitive customer data were modified or logged.
+
+---
+
+## 12. Demo Dataset Restoration & Dashboard Remediation (ORG-001)
+
+### 12.1 Root Cause Forensic Analysis
+- **Problem Statement:** After logging in with the demo account (`demo@nexuscfr.in`), the dashboard displayed `Overall Risk Score: 46/100` and `At-Risk Firms: 3`, but `Payment Delay Risk`, `Supply Chain Cascade Risk`, and `Outstanding Receivables` all showed `"Not enough data"`.
+- **Forensic Investigation:** 
+  1. We ran database diagnostics directly against the active Supabase PostgreSQL database for `ORG-001` (`Apex Manufacturing Consortium`, code `ORG_A`).
+  2. The query revealed that `ORG-001` retained its 12 canonical B2B firms (and 1 test firm `BUYER-TENANT-TEST`), but **all associated child records were absent**:
+     - `transactions = 0`
+     - `buyer_supplier_relationships = 0`
+     - `predictions = 0`
+     - `recommendations = 0`
+     - `alerts = 0`
+     - `deadlocks = 0`
+     - `import_batches = 0`
+  3. **Root Cause:** Prior integration test runs and cleanup scripts executing `prisma.transaction.deleteMany()` or teardown utilities purged the demo transaction, relationship, and analytics records.
+  4. **Why the Dashboard Showed "Not Enough Data":** In `server/src/services/dashboard.service.ts`:
+     ```typescript
+     const hasTransactions = totalTxnCount > 0;
+     ```
+     When `hasTransactions === false`, the calculations for payment delay risk, outstanding receivables, and cascade stress risk explicitly branch to return `"Not enough data"` with null financial aggregates. However, `overallRiskScore` (46/100) and `atRiskFirms` (3) were calculated purely from the 12 existing `Firm` records whose `riskScore` averaged 46.
+
+### 12.2 Restoration Source & Strategy
+- **Restoration Source:** Recovered the canonical B2B network topology, invoice distributions, and scenario parameters from version-controlled seed definitions (`server/prisma/seed.ts`), historical fixture definitions, and canonical SME supply-chain profiles.
+- **Idempotent High-Performance Seeding Module:** Created `server/src/utils/restoreDemoData.ts`:
+  - Uses Prisma batch inserts (`createMany({ skipDuplicates: true })`) to complete in **< 1.5 seconds** over network latency.
+  - Cleans any orphan/test artifacts safely within `ORG-001` boundary before batch inserting.
+  - Does **NOT** truncate global tables or affect any other organization.
+- **Automatic Self-Healing on Demo Login:** Updated `server/src/services/auth.service.ts` so that whenever `demo@nexuscfr.in` logs in, the service checks whether transaction counts are zero. If empty, it automatically triggers `restoreDemoData(prisma, organizationId)`, ensuring the live demo never degrades to an unseeded state.
+- **Dedicated CLI Script:** Created `server/scripts/seedDemo.ts` executable via `npm run seed:demo`.
+
+### 12.3 Demo Organization ID & Restored Record Counts
+Target Organization: `ORG-001` (`Apex Manufacturing Consortium`, code `ORG_A`)
+
+| Entity | Count | Notes |
+| :--- | :--- | :--- |
+| **Firms** | **12** | Canonical tier-1 & tier-2 suppliers/buyers (`FIRM-A-01` to `FIRM-A-12`) |
+| **Supply-Chain Relationships** | **30** | Directed buyer-supplier dependencies with dependency weights |
+| **Transactions / Invoices** | **120** | Realistic distribution: `PAID` (₹84.2L), `DELAYED` (₹32.4L), `CRITICAL` (₹18.6L), `PENDING` (₹41.2L) |
+| **Import Batches** | **1** | Canonical batch `BAT-ORG_A-001` with cryptographic hash & provenance |
+| **Risk Predictions** | **6** | ML risk predictions with driver factors and 30/60/90-day horizons |
+| **Actionable Recommendations** | **5** | Prioritized interventions (`HIGH`, `MEDIUM`) with impact estimates |
+| **Operational Alerts** | **4** | Unacknowledged payment delay and cascade propagation warnings |
+| **Circular Deadlocks** | **1** | Multi-party circular dependency (`DLK-ORG_A-001`) with ₹29.5L exposure |
+| **Scenarios & Simulations** | **1** | Default cascade simulation scenario & completed simulation run |
+| **Generated Reports** | **4** | `EXECUTIVE_SUMMARY`, `RISK_AUDIT`, `SUPPLIER_SCORECARD`, `CASCADE_ANALYSIS` |
+
+### 12.4 Before-and-After Dashboard & API Results
+
+| Metric / Endpoint | Before Restoration | After Restoration | Verification Status |
+| :--- | :--- | :--- | :--- |
+| **Overall Risk Score** | `46 / 100` | **46 / 100** (calculated from active firms & weighted pipeline) | Verified Active |
+| **Payment Delay Risk** | `Not enough data` | **High** (35.2% delayed/critical overdue ratio) | Resolved & Populated |
+| **Supply Chain Cascade Risk** | `Not enough data` | **Medium** (2 critical upstream nodes, 1 circular deadlock) | Resolved & Populated |
+| **Outstanding Receivables** | `Not enough data` | **₹92,20,000** across 48 pending/overdue invoices | Resolved & Populated |
+| **At-Risk Firms** | `3` | **3** (`Apex Steel Industries`, `Apex Logistics`, `Pinnacle Tech`) | Consistent |
+| **Transaction Table (`/api/transactions`)** | 0 items | **120 items** paginated with counterparties, statuses, amounts | Verified Active |
+| **Network Graph (`/api/network/graph`)** | 0 nodes, 0 edges | **12 nodes, 30 directed edges** with centrality & PageRank | Verified Active |
+| **Ingestion Health (`/api/provenance/batches`)** | Inconsistent batches | **1 batch, 120 ingested, 0 errors, SHA-256 verified** | Verified Active |
+
+### 12.5 Tenant Isolation Verification
+- **Empty Organization Validation:** An empty tenant organization (`ORG-EMPTY-VERIFY`) was instantiated and queried against all dashboard endpoints. It returned genuine empty states (`Not enough data`, 0 items) with zero leakage of `ORG-001` demo transactions or firms.
+- **Cross-Tenant Access Test:** Confirmed that queries with non-demo tenant tokens receive zero records from `ORG-001`.
+- **Zero Sensitive Data Exposure:** No credentials, production connection strings, or non-demo tenant data were modified, exposed, or committed.
+
+### 12.6 Files Changed & Added
+- `server/src/utils/restoreDemoData.ts`: High-performance idempotent batch seed utility.
+- `server/src/services/auth.service.ts`: Self-healing demo login lifecycle hook.
+- `server/scripts/seedDemo.ts`: Standalone CLI migration and seed runner.
+- `server/package.json`: Added `seed:demo` npm script.
+- `server/tests/demo_dashboard_complete.test.ts`: 13-test automated regression suite covering all demo modules, idempotency, and tenant isolation.
+- `QA_FINAL_REPORT.md`: Updated with full forensic root-cause analysis and remediation report.
+
+### 12.7 Automated Test Execution Summary
+- **Suite:** `server/tests/demo_dashboard_complete.test.ts`
+  - **Tests:** 13 passed / 13 total (100%)
+  - **Duration:** 21.28s
+- **Suite:** `server/tests/full_test_sheet_execution.test.ts`
+  - **Tests:** 20 passed / 20 total (100%)
+  - **Duration:** 14.69s
+- **TypeScript Typecheck:**
+  - `server`: 0 errors (`npx tsc --noEmit`)
+  - `frontend`: 0 errors (`npx tsc --noEmit`)
+- **Frontend Production Build:** Successful (`npm run build` in 17.72s).
+

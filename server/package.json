@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node-dev prisma/seed.ts",
     "seed": "ts-node-dev prisma/seed.ts",
+    "seed:demo": "ts-node-dev scripts/seedDemo.ts",
     "db:push": "prisma db push",
     "test": "vitest run --pool=forks --no-file-parallelism"
   },

@@ -22,6 +22,23 @@ export class AuthService {
     const organizationId = org ? org.id : (user as any).organizationId;
     const organizationName = org ? org.name : user.companyName;
 
+    // Self-healing demo data verification: If demo account has 0 transactions or 0 relationships,
+    // automatically restore canonical demo data so demo dashboard is always functional and complete.
+    if (user.email === "demo@nexuscfr.in" || organizationId === "ORG-001") {
+      try {
+        const [txnCount, relCount] = await Promise.all([
+          prisma.transaction.count({ where: { organizationId } }),
+          prisma.relationship.count({ where: { organizationId } }),
+        ]);
+        if (txnCount === 0 || relCount === 0) {
+          const { restoreDemoData } = await import("../utils/restoreDemoData");
+          await restoreDemoData(prisma, organizationId);
+        }
+      } catch (err) {
+        console.error("Failed to self-heal demo dataset on login:", err);
+      }
+    }
+
     const authUser: AuthenticatedUser = {
       id: user.id,
       email: user.email,
