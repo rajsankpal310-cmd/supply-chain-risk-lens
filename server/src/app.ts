@@ -39,7 +39,7 @@ app.get("/health", async (_req, res) => {
     dbDetails = {
       version: rawRes[0]?.version,
       database: rawRes[0]?.current_database,
-      provider: "Supabase PostgreSQL",
+      provider: env.DATABASE_URL.includes("supabase") ? "Supabase PostgreSQL" : "Neon PostgreSQL",
     };
   } catch (_e) {
     dbStatus = "error";

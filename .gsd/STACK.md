@@ -12,7 +12,7 @@
 | React | ^19.2.0 | Frontend component library |
 | TanStack Start | ^1.168.32 | Full-stack React SSR/client routing framework |
 | Vite | ^6.x | Frontend build tool and development server |
-| PostgreSQL | Supabase | Primary relational database |
+| PostgreSQL | Neon | Primary serverless relational database |
 | SQLite | dev.db | Local development and integration testing fallback |
 
 ---
@@ -80,7 +80,7 @@
 
 | Service / Variable | Provider / Scope | Purpose | Location |
 |--------------------|------------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL (Supabase) | Relational database connection string | `server/.env` |
+| `DATABASE_URL` | PostgreSQL (Neon) | Relational database connection string | `server/.env` |
 | `PORT` | Local Express Server | Backend port (default `5000`) | `server/.env` |
 | `JWT_SECRET` | Backend Auth | Secret for signing user sessions | `server/.env` |
 | `VITE_API_BASE_URL` | Vite Frontend Client | Backend API endpoint URL | `.env` / `src/api/client.ts` |
